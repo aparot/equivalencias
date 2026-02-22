@@ -21,10 +21,12 @@ export function getServerSupabase() {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: Parameters<typeof cookieStore.set>[0]) {
-        cookieStore.set({ name, value, ...options });
+        const { name: _ignored, value: _ignoredValue, ...rest } = options as Record<string, unknown>;
+        cookieStore.set({ name, value, ...(rest as Record<string, unknown>) });
       },
       remove(name: string, options: Parameters<typeof cookieStore.set>[0]) {
-        cookieStore.set({ name, value: "", ...options });
+        const { name: _ignored, value: _ignoredValue, ...rest } = options as Record<string, unknown>;
+        cookieStore.set({ name, value: "", ...(rest as Record<string, unknown>) });
       }
     }
   });
