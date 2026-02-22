@@ -122,6 +122,7 @@ export default function App(): React.JSX.Element {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileRole, setProfileRole] = useState<AppRole>("user");
   const [profilePlan, setProfilePlan] = useState<AppPlan>("free");
+  const [redirectingToAdmin, setRedirectingToAdmin] = useState(false);
   const [entitlements, setEntitlements] = useState<Entitlements>({});
   const [passwordResetEmail, setPasswordResetEmail] = useState("");
   const [showPasswordReset, setShowPasswordReset] = useState(false);
@@ -223,10 +224,12 @@ export default function App(): React.JSX.Element {
     if (data?.plan) setProfilePlan(data.plan as AppPlan);
     if (data?.role === "admin") {
       if (Platform.OS === "web" && typeof window !== "undefined") {
+        setRedirectingToAdmin(true);
         const target = ADMIN_URL.startsWith("http")
           ? ADMIN_URL
           : `${window.location.origin}${ADMIN_URL}`;
-        window.location.href = target;
+        window.location.replace(target);
+        return;
       } else {
         Alert.alert("Admin", `Este usuario es admin. Abre el panel en ${ADMIN_URL}`);
       }
@@ -515,6 +518,18 @@ export default function App(): React.JSX.Element {
     });
     return bySearch;
   }, [activeFilter, filterSearch, results]);
+
+  if (redirectingToAdmin && Platform.OS === "web") {
+    return (
+      <SafeAreaView style={styles.authSafe}>
+        <ScrollView contentContainerStyle={styles.authContainer}>
+          <View style={styles.authCard}>
+            <Text style={styles.authTitle}>Redirigiendo al panel...</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   if (!profileName) {
     return (
