@@ -318,9 +318,12 @@ export default function Page() {
     setEntitlements((ent.data ?? []) as UserEntitlement[]);
 
     setSelectedVersion((current) => {
-      const hasCurrent = (v.data ?? []).some((item) => item.id === current);
+      const list = v.data ?? [];
+      const published = list.find((item) => item.status === "published");
+      if (published?.id) return published.id;
+      const hasCurrent = list.some((item) => item.id === current);
       if (hasCurrent) return current;
-      return (v.data ?? [])[0]?.id ?? "";
+      return list[0]?.id ?? "";
     });
   }
 
@@ -836,27 +839,6 @@ export default function Page() {
 
       {isAdmin && (
         <section className="version-bar">
-          <label>
-            Versión de trabajo
-            <select value={selectedVersion} onChange={(event) => setSelectedVersion(event.target.value)}>
-              {versions.map((version) => (
-                <option key={version.id} value={version.id}>
-                  {version.name} [{version.status}]
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="btn primary" disabled={!selectedVersion} onClick={() => publishVersion(selectedVersion)}>
-            Publicar versión
-          </button>
-          <div className="inline-form">
-            <input
-              placeholder="Nueva versión (ej: Scientific v3)"
-              value={newVersionName}
-              onChange={(event) => setNewVersionName(event.target.value)}
-            />
-            <button className="btn" onClick={createVersion}>Crear draft</button>
-          </div>
           <button className="btn ghost" onClick={() => void loadAll()}>{loading ? "Cargando..." : "Actualizar"}</button>
         </section>
       )}
