@@ -94,6 +94,12 @@ body {
   display: grid;
   gap: 16px;
   box-shadow: var(--shadow-soft);
+  position: relative;
+  z-index: 1;
+}
+
+.portal-root .portal-card:first-of-type {
+  z-index: 12;
 }
 
 .portal-card h2 {
