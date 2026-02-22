@@ -1,4 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey =
@@ -11,5 +11,5 @@ function isValidHttpUrl(value?: string) {
 
 export const supabase =
   isValidHttpUrl(supabaseUrl) && supabaseAnonKey
-    ? createBrowserClient(supabaseUrl as string, supabaseAnonKey)
+    ? createClient(supabaseUrl as string, supabaseAnonKey)
     : null;
