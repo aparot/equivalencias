@@ -12,7 +12,9 @@ export default function LogoutPage() {
         await supabase.auth.signOut();
       }
       if (typeof window !== "undefined") {
-        window.location.href = PORTAL_URL;
+        const url = new URL(PORTAL_URL);
+        url.searchParams.set("logout", "1");
+        window.location.href = url.toString();
       }
     }
     void run();

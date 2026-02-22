@@ -369,7 +369,9 @@ export default function Page() {
     setSessionEmail(null);
     setIsAdmin(false);
     if (typeof window !== "undefined") {
-      window.location.href = PORTAL_URL;
+      const url = new URL(PORTAL_URL);
+      url.searchParams.set("logout", "1");
+      window.location.href = url.toString();
     }
   }
 
