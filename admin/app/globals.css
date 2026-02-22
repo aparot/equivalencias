@@ -101,16 +101,16 @@ body {
 }
 
 .btn {
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
   background: #fff;
-  border-radius: 12px;
   padding: 12px 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .portal-form {
-  max-width: 720px;
+  max-width: 100%;
   width: 100%;
   display: grid;
   gap: 14px;
@@ -137,19 +137,18 @@ body {
 }
 
 .result-card {
-  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 16px;
   background: #fff;
   display: grid;
   gap: 6px;
-  border-left: 4px solid #4d948a;
+  border: 1px solid #9b9b9b;
 }
 
 .result-card h3 {
   margin: 0;
-  font-weight: 600;
-  color: var(--text);
+  font-weight: normal;
+  color: #9b9b9b;
 }
 
 .result-value {
@@ -277,7 +276,7 @@ body {
 
 .stat-value {
   margin: 0;
-  font-size: 32px;
+  font-size: 40px;
   font-weight: 700;
 }
 
@@ -285,7 +284,7 @@ body {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--bg-accent);
-  padding: 12px;
+  padding: 15px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
