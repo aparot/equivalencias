@@ -28,10 +28,7 @@ body {
 body {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at 8% 0%, rgba(67, 138, 91, 0.16), transparent 40%),
-    radial-gradient(circle at 100% 20%, rgba(232, 190, 123, 0.22), transparent 36%),
-    linear-gradient(180deg, #f7f6f0 0%, #eff2e8 100%);
+  background: var(--bg);
   min-height: 100vh;
 }
 
