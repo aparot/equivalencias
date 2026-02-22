@@ -137,14 +137,27 @@ const DEFAULT_SOURCE_FORM: SourceForm = {
   notes: ""
 };
 
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: "overview", label: "Resumen" },
-  { key: "resources", label: "Recursos" },
-  { key: "units", label: "Unidades" },
-  { key: "equivalences", label: "Equivalencias" },
-  { key: "sources", label: "Fuentes" },
-  { key: "users", label: "Usuarios" },
-  { key: "activity", label: "Actividad" }
+const TAB_SECTIONS: Array<{ title: string; tabs: Array<{ key: TabKey; label: string }> }> = [
+  {
+    title: "General",
+    tabs: [{ key: "overview", label: "Resumen" }]
+  },
+  {
+    title: "Dataset",
+    tabs: [
+      { key: "resources", label: "Recursos" },
+      { key: "units", label: "Unidades" },
+      { key: "equivalences", label: "Equivalencias" },
+      { key: "sources", label: "Fuentes" }
+    ]
+  },
+  {
+    title: "Control",
+    tabs: [
+      { key: "users", label: "Usuarios" },
+      { key: "activity", label: "Actividad" }
+    ]
+  }
 ];
 
 const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || "/";
@@ -984,20 +997,28 @@ export default function Page() {
       )}
 
       {isAdmin && (
-        <nav className="tabs" aria-label="Módulos admin">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`tab ${activeTab === tab.key ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      )}
+        <section className="admin-shell">
+          <aside className="admin-sidebar" aria-label="Navegación admin">
+            {TAB_SECTIONS.map((section) => (
+              <div key={section.title} className="sidebar-section">
+                <p className="sidebar-title">{section.title}</p>
+                <div className="sidebar-links">
+                  {section.tabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      className={`sidebar-link ${activeTab === tab.key ? "active" : ""}`}
+                      onClick={() => setActiveTab(tab.key)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </aside>
 
-      {isAdmin && activeTab === "overview" && (
+          <div className="admin-main">
+      {activeTab === "overview" && (
         <section className="panel">
           <h2>Resumen operativo</h2>
           <div className="summary-grid">
@@ -1026,7 +1047,7 @@ export default function Page() {
         </section>
       )}
 
-      {isAdmin && activeTab === "resources" && (
+      {activeTab === "resources" && (
         <section className="panel" ref={resourceFormRef}>
           <h2>Recursos</h2>
           <div className="form-grid">
@@ -1090,7 +1111,7 @@ export default function Page() {
         </section>
       )}
 
-      {isAdmin && activeTab === "units" && (
+      {activeTab === "units" && (
         <section className="panel" ref={unitFormRef}>
           <h2>Unidades y conversiones</h2>
           <div className="form-grid">
@@ -1164,7 +1185,7 @@ export default function Page() {
         </section>
       )}
 
-      {isAdmin && activeTab === "equivalences" && (
+      {activeTab === "equivalences" && (
         <section className="panel" ref={eqFormRef}>
           <h2>Equivalencias</h2>
           <div className="form-grid">
@@ -1276,7 +1297,7 @@ export default function Page() {
         </section>
       )}
 
-      {isAdmin && activeTab === "sources" && (
+      {activeTab === "sources" && (
         <section className="panel" ref={sourceFormRef}>
           <h2>Fuentes científicas</h2>
           <div className="form-grid">
@@ -1337,7 +1358,7 @@ export default function Page() {
         </section>
       )}
 
-      {isAdmin && activeTab === "users" && (
+      {activeTab === "users" && (
         <section className="panel">
           <h2>Usuarios y roles</h2>
           <div className="actions-row">
@@ -1452,7 +1473,7 @@ export default function Page() {
         </section>
       )}
 
-      {isAdmin && activeTab === "activity" && (
+      {activeTab === "activity" && (
         <section className="panel">
           <h2>Actividad de auditoría</h2>
           <p className="muted">Registro de cambios sobre recursos, unidades, equivalencias y fuentes.</p>
@@ -1489,6 +1510,9 @@ export default function Page() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+      )}
           </div>
         </section>
       )}
