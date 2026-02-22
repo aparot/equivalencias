@@ -216,6 +216,38 @@ textarea:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.result-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
+.result-categories {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.result-chip {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5a4b;
+  cursor: pointer;
+}
+
+.result-chip.active {
+  border-color: #285f40;
+  background: #285f40;
+  color: #fff;
+}
+
+.result-search {
+  max-width: 360px;
+}
+
 .combo {
   position: relative;
   width: 100%;
@@ -696,6 +728,10 @@ tr:hover td {
   .portal-grid,
   .result-list {
     grid-template-columns: 1fr;
+  }
+
+  .result-search {
+    max-width: 100%;
   }
 
   .portal-header,

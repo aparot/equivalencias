@@ -14,6 +14,7 @@ import {
 type ResourceWithUnits = Resource & { units: Unit[] };
 type AppRole = "admin" | "user";
 type AppPlan = "free" | "pro" | "enterprise";
+type ResultCategory = "all" | "transportes" | "residuos" | "energia" | "agua" | "materiales" | "otros";
 
 const PLAN_LIMITS: Record<AppPlan, number> = {
   free: 10,
@@ -21,11 +22,46 @@ const PLAN_LIMITS: Record<AppPlan, number> = {
   enterprise: 200
 };
 
+const RESULT_CATEGORY_LABELS: Record<Exclude<ResultCategory, "all">, string> = {
+  transportes: "Transportes",
+  residuos: "Residuos",
+  energia: "Energía",
+  agua: "Agua",
+  materiales: "Materiales",
+  otros: "Otros"
+};
+
+const RESULT_CATEGORY_KEYWORDS: Record<Exclude<ResultCategory, "all">, string[]> = {
+  transportes: ["auto", "coche", "vehiculo", "camion", "bus", "vuelo", "avion", "km", "transporte", "metro"],
+  residuos: ["residuo", "basura", "vertedero", "recicl", "relleno sanitario", "desecho"],
+  energia: ["energia", "electric", "kwh", "diesel", "gasolina", "combustible", "gas", "carbon", "petroleo"],
+  agua: ["agua", "ducha", "litro", "riego", "consumo hidrico", "h2o"],
+  materiales: ["papel", "carton", "plastico", "vidrio", "acero", "aluminio", "madera", "material", "envase"],
+  otros: []
+};
+
 function toDisplayName(identifier: string): string {
   const normalized = identifier.trim().toLowerCase();
   const base = normalized.includes("@") ? normalized.split("@")[0] : normalized;
   const safe = base.replace(/[._-]+/g, " ").trim() || "usuario";
   return safe.charAt(0).toUpperCase() + safe.slice(1);
+}
+
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function detectResultCategory(item: CalculationResult): Exclude<ResultCategory, "all"> {
+  const haystack = normalizeText(`${item.title} ${item.description} ${item.outputUnit}`);
+  for (const [category, keywords] of Object.entries(RESULT_CATEGORY_KEYWORDS)) {
+    if (keywords.some((word) => haystack.includes(word))) {
+      return category as Exclude<ResultCategory, "all">;
+    }
+  }
+  return "otros";
 }
 
 export default function PortalClient() {
@@ -37,6 +73,8 @@ export default function PortalClient() {
   const [unitSymbol, setUnitSymbol] = useState("");
   const [quantity, setQuantity] = useState("100");
   const [results, setResults] = useState<CalculationResult[]>([]);
+  const [resultSearch, setResultSearch] = useState("");
+  const [resultCategory, setResultCategory] = useState<ResultCategory>("all");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -78,6 +116,34 @@ export default function PortalClient() {
   }, [currentResource]);
 
   const currentUnit = currentUnits.find((unit) => unit.symbol === unitSymbol) ?? currentUnits[0];
+  const categorizedResults = useMemo(
+    () => results.map((item) => ({ ...item, category: detectResultCategory(item) })),
+    [results]
+  );
+  const filteredResults = useMemo(() => {
+    const query = normalizeText(resultSearch.trim());
+    return categorizedResults.filter((item) => {
+      if (resultCategory !== "all" && item.category !== resultCategory) return false;
+      if (!query) return true;
+      const text = normalizeText(`${item.title} ${item.description} ${item.outputUnit}`);
+      return text.includes(query);
+    });
+  }, [categorizedResults, resultCategory, resultSearch]);
+  const categoryCounts = useMemo(() => {
+    const base: Record<ResultCategory, number> = {
+      all: categorizedResults.length,
+      transportes: 0,
+      residuos: 0,
+      energia: 0,
+      agua: 0,
+      materiales: 0,
+      otros: 0
+    };
+    for (const item of categorizedResults) {
+      base[item.category] += 1;
+    }
+    return base;
+  }, [categorizedResults]);
 
   async function bootstrap() {
     await loadPublishedDataset();
@@ -225,6 +291,8 @@ export default function PortalClient() {
       maxResults
     );
     setResults(nextResults);
+    setResultCategory("all");
+    setResultSearch("");
   }
 
   if (!profileName) {
@@ -391,15 +459,47 @@ export default function PortalClient() {
         {results.length === 0 ? (
           <p className="muted">Ingresa una cantidad y presiona “Calcular equivalencias”.</p>
         ) : (
-          <div className="result-list">
-            {results.map((item) => (
-              <div key={item.equivalenceId} className="result-card">
-                <h3>{item.title}</h3>
-                <p className="result-value">{item.value.toFixed(2)} {item.outputUnit}</p>
-                <p className="equiv-desc">{item.description}</p>
+          <>
+            <div className="result-toolbar">
+              <div className="result-categories" role="tablist" aria-label="Filtrar resultados por categoría">
+                <button
+                  type="button"
+                  className={`result-chip ${resultCategory === "all" ? "active" : ""}`}
+                  onClick={() => setResultCategory("all")}
+                >
+                  Todas ({categoryCounts.all})
+                </button>
+                {(Object.keys(RESULT_CATEGORY_LABELS) as Array<Exclude<ResultCategory, "all">>).map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    className={`result-chip ${resultCategory === category ? "active" : ""}`}
+                    onClick={() => setResultCategory(category)}
+                  >
+                    {RESULT_CATEGORY_LABELS[category]} ({categoryCounts[category]})
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+              <input
+                className="input result-search"
+                placeholder="Buscar equivalencia..."
+                value={resultSearch}
+                onChange={(event) => setResultSearch(event.target.value)}
+              />
+            </div>
+            <div className="result-list">
+              {filteredResults.map((item) => (
+                <div key={item.equivalenceId} className="result-card">
+                  <h3>{item.title}</h3>
+                  <p className="result-value">{item.value.toFixed(2)} {item.outputUnit}</p>
+                  <p className="equiv-desc">{item.description}</p>
+                </div>
+              ))}
+            </div>
+            {filteredResults.length === 0 && (
+              <p className="muted">No hay resultados para ese filtro.</p>
+            )}
+          </>
         )}
       </section>
 
