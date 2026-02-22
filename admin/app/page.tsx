@@ -368,6 +368,9 @@ export default function Page() {
     await supabase.auth.signOut();
     setSessionEmail(null);
     setIsAdmin(false);
+    if (typeof window !== "undefined") {
+      window.location.href = PORTAL_URL;
+    }
   }
 
   async function createVersion() {
