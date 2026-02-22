@@ -97,31 +97,26 @@ npm run start --workspace mobile
 - Estructura base en `shared/src/i18n.ts` con `es`, `en`, `pt`.
 - Espanol es idioma por defecto.
 
-## 11) Deploy sin localhost (Vercel)
+## 11) Deploy sin localhost (Vercel, un solo dominio)
 
-### Admin (Next.js) en Vercel
+Se recomienda un **solo proyecto** en Vercel (admin + portal en el mismo dominio).
+
+### Configuración
 1. Crea un proyecto en Vercel desde este repo.
 2. Root Directory: `admin`
 3. Framework: Next.js
-4. Environment Variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-   - `SUPABASE_SECRET_KEY`
-   - `NEXT_PUBLIC_PORTAL_URL` (URL pública del portal mobile web)
-5. Deploy.
+4. Build Command: (usa `vercel-build` por defecto)
 
-### Mobile web (Expo) en Vercel
-1. Crea otro proyecto en Vercel desde el mismo repo.
-2. Root Directory: `mobile`
-3. Build Command: `npx expo export --platform web`
-4. Output Directory: `dist`
-5. Environment Variables:
-   - `EXPO_PUBLIC_SUPABASE_URL`
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-   - `EXPO_PUBLIC_ADMIN_URL` (URL pública del admin)
-6. Deploy.
+### Environment Variables (en el mismo proyecto)
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `NEXT_PUBLIC_PORTAL_URL` = `/`
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `EXPO_PUBLIC_ADMIN_URL` = `/admin`
 
 ### Resultado
-- Mobile web (portal): `https://app.tudominio.com`
-- Admin: `https://admin.tudominio.com`
-- Login único desde el portal redirige a admin si el rol es `admin`.
+- Portal (mobile web): `https://tu-dominio.vercel.app/`
+- Admin: `https://tu-dominio.vercel.app/admin`
+- Login único en el portal comparte sesión con admin (mismo dominio).

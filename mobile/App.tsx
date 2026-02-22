@@ -43,8 +43,7 @@ type Entitlements = Record<string, string>;
 const HISTORY_KEY = "ecoequivalencias.history.v1";
 const CACHE_KEY = "ecoequivalencias.dataset.v1";
 const LAST_QUERY_KEY = "ecoequivalencias.last-query.v1";
-const ADMIN_URL = process.env.EXPO_PUBLIC_ADMIN_URL ?? "http://localhost:3000";
-const PORTAL_LOGOUT_PARAM = "logout";
+const ADMIN_URL = process.env.EXPO_PUBLIC_ADMIN_URL ?? "/admin";
 const PLAN_LIMITS: Record<AppPlan, number> = {
   free: 10,
   pro: 50,
@@ -159,22 +158,6 @@ export default function App(): React.JSX.Element {
   }, [resourceSearch, resources]);
 
   async function bootstrap() {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get(PORTAL_LOGOUT_PARAM) === "1") {
-        if (supabase) {
-          await supabase.auth.signOut();
-        }
-        setProfileName(null);
-        setProfileRole("user");
-        setProfilePlan("free");
-        setEntitlements({});
-        params.delete(PORTAL_LOGOUT_PARAM);
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.search = params.toString();
-        window.history.replaceState({}, "", cleanUrl.toString());
-      }
-    }
     const [cachedDataset, savedHistory] = await Promise.all([
       AsyncStorage.getItem(CACHE_KEY),
       AsyncStorage.getItem(HISTORY_KEY)
@@ -240,22 +223,10 @@ export default function App(): React.JSX.Element {
     if (data?.plan) setProfilePlan(data.plan as AppPlan);
     if (data?.role === "admin") {
       if (Platform.OS === "web" && typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get(PORTAL_LOGOUT_PARAM) === "1") {
-          return;
-        }
-        const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData.session;
-        const token = session?.access_token;
-        const refresh = session?.refresh_token;
-        if (token && refresh) {
-          const url = new URL(ADMIN_URL);
-          url.searchParams.set("access_token", token);
-          url.searchParams.set("refresh_token", refresh);
-          window.location.href = url.toString();
-          return;
-        }
-        window.location.href = ADMIN_URL;
+        const target = ADMIN_URL.startsWith("http")
+          ? ADMIN_URL
+          : `${window.location.origin}${ADMIN_URL}`;
+        window.location.href = target;
       } else {
         Alert.alert("Admin", `Este usuario es admin. Abre el panel en ${ADMIN_URL}`);
       }

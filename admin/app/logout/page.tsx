@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 
-const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:8081";
+const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || "/";
 
 export default function LogoutPage() {
   useEffect(() => {
@@ -12,9 +12,7 @@ export default function LogoutPage() {
         await supabase.auth.signOut();
       }
       if (typeof window !== "undefined") {
-        const url = new URL(PORTAL_URL);
-        url.searchParams.set("logout", "1");
-        window.location.href = url.toString();
+        window.location.href = PORTAL_URL;
       }
     }
     void run();
