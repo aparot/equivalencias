@@ -11,5 +11,5 @@ function isValidHttpUrl(value?: string) {
 
 export const supabase =
   isValidHttpUrl(supabaseUrl) && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
+    ? createClient(supabaseUrl as string, supabaseAnonKey)
     : null;
