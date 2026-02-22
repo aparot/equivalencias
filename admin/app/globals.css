@@ -29,7 +29,7 @@ body {
 }
 
 .portal-root {
-  max-width: 740px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 32px;
   display: grid;
@@ -116,6 +116,10 @@ body {
   gap: 14px;
 }
 
+.portal-form--auth {
+  max-width: 520px;
+}
+
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -133,7 +137,7 @@ body {
 .result-list {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .result-card {
@@ -165,6 +169,9 @@ body {
   .portal-header {
     flex-direction: column;
     align-items: stretch;
+  }
+  .result-list {
+    grid-template-columns: 1fr;
   }
 }
 

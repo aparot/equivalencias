@@ -32,8 +32,9 @@ export default function PortalClient() {
   const [resources, setResources] = useState<ResourceWithUnits[]>([]);
   const [equivalences, setEquivalences] = useState<Equivalence[]>([]);
   const [resourceId, setResourceId] = useState("");
+  const [resourceQuery, setResourceQuery] = useState("");
   const [unitSymbol, setUnitSymbol] = useState("");
-  const [quantity, setQuantity] = useState("6");
+  const [quantity, setQuantity] = useState("100");
   const [results, setResults] = useState<CalculationResult[]>([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,11 +55,37 @@ export default function PortalClient() {
     void bootstrap();
   }, []);
 
+  useEffect(() => {
+    const query = resourceQuery.trim().toLowerCase();
+    if (!query) return;
+    const match = resources.find((resource) => resource.name.toLowerCase() === query);
+    if (match && match.id !== resourceId) {
+      setResourceId(match.id);
+      setUnitSymbol(match.units?.[0]?.symbol ?? "");
+    }
+  }, [resourceQuery, resources, resourceId]);
+
   const currentResource = useMemo(
     () => resources.find((resource) => resource.id === resourceId) ?? resources[0],
     [resourceId, resources]
   );
-  const currentUnits = currentResource?.units ?? [];
+  const filteredResources = useMemo(() => {
+    const query = resourceQuery.trim().toLowerCase();
+    if (!query) return resources;
+    return resources.filter((resource) => `${resource.name} ${resource.slug}`.toLowerCase().includes(query));
+  }, [resourceQuery, resources]);
+
+  const currentUnits = useMemo(() => {
+    const units = currentResource?.units ?? [];
+    const seen = new Set<string>();
+    return units.filter((unit) => {
+      const key = `${unit.symbol}::${unit.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [currentResource]);
+
   const currentUnit = currentUnits.find((unit) => unit.symbol === unitSymbol) ?? currentUnits[0];
 
   async function bootstrap() {
@@ -127,8 +154,13 @@ export default function PortalClient() {
 
     setResources(normalizedResources);
     setEquivalences(normalizedEquivalences);
-    setResourceId(normalizedResources[0]?.id ?? "");
-    setUnitSymbol(normalizedResources[0]?.units[0]?.symbol ?? "");
+    const preferred = normalizedResources.find((item) =>
+      item.name.toLowerCase().includes("botella") || item.name.toLowerCase().includes("plástico")
+    );
+    const initialResource = preferred ?? normalizedResources[0];
+    setResourceId(initialResource?.id ?? "");
+    setResourceQuery(initialResource?.name ?? "");
+    setUnitSymbol(initialResource?.units?.[0]?.symbol ?? "");
   }
 
   async function signIn() {
@@ -225,7 +257,7 @@ export default function PortalClient() {
             </button>
           </div>
           <form
-            className="portal-form"
+            className="portal-form portal-form--auth"
             onSubmit={(event) => {
               event.preventDefault();
               if (authMode === "login") {
@@ -307,8 +339,31 @@ export default function PortalClient() {
             </label>
             <label className="field">
               Recurso
-              <select className="input" value={resourceId} onChange={(event) => setResourceId(event.target.value)}>
-                {resources.map((resource) => (
+              <input
+                className="input"
+                placeholder="Busca un recurso (ej: Botellas de plástico)"
+                value={resourceQuery}
+                onChange={(event) => setResourceQuery(event.target.value)}
+                list="resource-options"
+              />
+              <datalist id="resource-options">
+                {filteredResources.map((resource) => (
+                  <option key={resource.id} value={resource.name} />
+                ))}
+              </datalist>
+              <select
+                className="input"
+                value={resourceId}
+                onChange={(event) => {
+                  setResourceId(event.target.value);
+                  const chosen = resources.find((r) => r.id === event.target.value);
+                  if (chosen) {
+                    setResourceQuery(chosen.name);
+                    setUnitSymbol(chosen.units?.[0]?.symbol ?? "");
+                  }
+                }}
+              >
+                {filteredResources.map((resource) => (
                   <option key={resource.id} value={resource.id}>{resource.name}</option>
                 ))}
               </select>
