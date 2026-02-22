@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import {
   calculateEquivalences,
@@ -114,6 +114,7 @@ export default function PortalClient() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileRole, setProfileRole] = useState<AppRole>("user");
   const [profilePlan, setProfilePlan] = useState<AppPlan>("free");
+  const resourceComboRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -123,6 +124,18 @@ export default function PortalClient() {
     }
     void bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (!resourceOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (!resourceComboRef.current?.contains(target)) {
+        setResourceOpen(false);
+      }
+    }
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [resourceOpen]);
 
   const isGuest = !profileName;
   const resourceLimit = isGuest ? GUEST_RESOURCE_LIMIT : RESOURCE_LIMITS[profilePlan];
@@ -451,7 +464,7 @@ export default function PortalClient() {
             </label>
             <label className="field">
               Recurso
-              <div className="combo">
+              <div className={`combo ${resourceOpen ? "open" : ""}`} ref={resourceComboRef}>
                 <button
                   className="combo-trigger"
                   type="button"

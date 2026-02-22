@@ -53,6 +53,7 @@ body {
     display: grid;
     grid-gap: 18px;
     gap: 18px;
+    isolation: isolate;
 }
 
 .portal-root--auth {
@@ -99,10 +100,11 @@ body {
   box-shadow: var(--shadow-soft);
   position: relative;
   z-index: 1;
+  overflow: visible;
 }
 
 .portal-root .portal-card:first-of-type {
-  z-index: 12;
+  z-index: 30;
 }
 
 .portal-root .upgrade-banner {
@@ -112,7 +114,7 @@ body {
 
 .portal-root .portal-card--results {
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 .portal-card h2 {
@@ -325,6 +327,11 @@ textarea:focus {
 .combo {
   position: relative;
   width: 100%;
+  z-index: 40;
+}
+
+.combo.open {
+  z-index: 120;
 }
 
 .combo-trigger {
@@ -357,7 +364,7 @@ textarea:focus {
   border-radius: 12px;
   box-shadow: var(--shadow-hard);
   padding: 10px;
-  z-index: 90;
+  z-index: 200;
   display: grid;
   gap: 8px;
 }
