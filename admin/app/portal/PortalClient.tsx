@@ -444,7 +444,7 @@ export default function PortalClient() {
         </section>
       )}
 
-      <section className="portal-card">
+      <section className="portal-card portal-card--calculator">
         <form
           className="portal-form"
           onSubmit={(event) => {

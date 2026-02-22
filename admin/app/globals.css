@@ -103,8 +103,8 @@ body {
   overflow: visible;
 }
 
-.portal-root .portal-card:first-of-type {
-  z-index: 30;
+.portal-card--calculator {
+  z-index: 999;
 }
 
 .portal-root .upgrade-banner {
@@ -331,7 +331,7 @@ textarea:focus {
 }
 
 .combo.open {
-  z-index: 120;
+  z-index: 9999;
 }
 
 .combo-trigger {
@@ -364,7 +364,7 @@ textarea:focus {
   border-radius: 12px;
   box-shadow: var(--shadow-hard);
   padding: 10px;
-  z-index: 200;
+  z-index: 9999;
   display: grid;
   gap: 8px;
 }
