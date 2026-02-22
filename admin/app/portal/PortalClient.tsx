@@ -145,12 +145,16 @@ export default function PortalClient() {
 
     setResources(normalizedResources);
     setEquivalences(normalizedEquivalences);
-    const preferred = normalizedResources.find((item) =>
-      item.name.toLowerCase().includes("botella") || item.name.toLowerCase().includes("plástico")
-    );
+    const preferred = normalizedResources.find((item) => {
+      const name = item.name.toLowerCase();
+      return name.includes("papel mezclado") || name.includes("papel mixto");
+    });
     const initialResource = preferred ?? normalizedResources[0];
     setResourceId(initialResource?.id ?? "");
-    setUnitSymbol(initialResource?.units?.[0]?.symbol ?? "");
+    const preferredUnit =
+      initialResource?.units?.find((unit) => unit.symbol.toLowerCase() === "kg") ??
+      initialResource?.units?.[0];
+    setUnitSymbol(preferredUnit?.symbol ?? "");
   }
 
   async function signIn() {

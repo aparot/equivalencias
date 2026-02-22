@@ -117,7 +117,7 @@ body {
 }
 
 .portal-form--auth {
-  max-width: 520px;
+  max-width: 100%;
 }
 
 .btn.primary {
