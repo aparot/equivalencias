@@ -105,6 +105,16 @@ body {
   z-index: 12;
 }
 
+.portal-root .upgrade-banner {
+  position: relative;
+  z-index: 2;
+}
+
+.portal-root .portal-card--results {
+  position: relative;
+  z-index: 2;
+}
+
 .portal-card h2 {
   margin: 0;
   font-size: 20px;
@@ -347,7 +357,7 @@ textarea:focus {
   border-radius: 12px;
   box-shadow: var(--shadow-hard);
   padding: 10px;
-  z-index: 20;
+  z-index: 90;
   display: grid;
   gap: 8px;
 }

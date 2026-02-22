@@ -396,30 +396,7 @@ export default function PortalClient() {
               : "Modo invitado: 10 recursos y 3 ecoequivalencias por cálculo."}
           </p>
         </div>
-        {profileName ? (
-          <button className="btn ghost" onClick={signOut}>Cerrar sesión</button>
-        ) : (
-          <div className="auth-actions">
-            <button
-              className="btn ghost"
-              onClick={() => {
-                setAuthMode("login");
-                setShowAuthPanel(true);
-              }}
-            >
-              Ingresar
-            </button>
-            <button
-              className="btn primary"
-              onClick={() => {
-                setAuthMode("signup");
-                setShowAuthPanel(true);
-              }}
-            >
-              Registrarme
-            </button>
-          </div>
-        )}
+        {profileName && <button className="btn ghost" onClick={signOut}>Cerrar sesión</button>}
       </header>
 
       {isGuest && (
