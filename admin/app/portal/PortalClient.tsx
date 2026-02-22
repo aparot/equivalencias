@@ -212,41 +212,56 @@ export default function PortalClient() {
             <button
               className={authMode === "login" ? "toggle active" : "toggle"}
               onClick={() => setAuthMode("login")}
+              type="button"
             >
               Ingresar
             </button>
             <button
               className={authMode === "signup" ? "toggle active" : "toggle"}
               onClick={() => setAuthMode("signup")}
+              type="button"
             >
               Registrarme
             </button>
           </div>
-          <input
-            className="input"
-            placeholder="Email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <input
-            className="input"
-            placeholder="Contraseña"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-          {authMode === "signup" && (
-            <input
-              className="input"
-              placeholder="Confirmar contraseña"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-            />
-          )}
-          <button className="btn primary" onClick={authMode === "login" ? signIn : signUp} disabled={authLoading}>
-            {authLoading ? "Procesando..." : authMode === "login" ? "Ingresar" : "Crear cuenta"}
-          </button>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (authMode === "login") {
+                void signIn();
+              } else {
+                void signUp();
+              }
+            }}
+          >
+            <div className="portal-grid" style={{ gridTemplateColumns: "1fr" }}>
+              <input
+                className="input"
+                placeholder="Email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Contraseña"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              {authMode === "signup" && (
+                <input
+                  className="input"
+                  placeholder="Confirmar contraseña"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              )}
+            </div>
+            <button className="btn primary" type="submit" disabled={authLoading}>
+              {authLoading ? "Procesando..." : authMode === "login" ? "Ingresar" : "Crear cuenta"}
+            </button>
+          </form>
           {authNotice && <p className="alert">{authNotice}</p>}
         </section>
       </main>
@@ -272,34 +287,41 @@ export default function PortalClient() {
       </header>
 
       <section className="portal-card">
-        <div className="portal-grid">
-          <label className="field">
-            Cantidad
-            <input
-              className="input"
-              value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
-              placeholder="Ingresa una cantidad"
-            />
-          </label>
-          <label className="field">
-            Recurso
-            <select className="input" value={resourceId} onChange={(event) => setResourceId(event.target.value)}>
-              {resources.map((resource) => (
-                <option key={resource.id} value={resource.id}>{resource.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Unidad
-            <select className="input" value={unitSymbol} onChange={(event) => setUnitSymbol(event.target.value)}>
-              {currentUnits.map((unit) => (
-                <option key={unit.id} value={unit.symbol}>{unit.name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <button className="btn primary" onClick={handleCalculate}>Calcular equivalencias</button>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleCalculate();
+          }}
+        >
+          <div className="portal-grid">
+            <label className="field">
+              Cantidad
+              <input
+                className="input"
+                value={quantity}
+                onChange={(event) => setQuantity(event.target.value)}
+                placeholder="Ingresa una cantidad"
+              />
+            </label>
+            <label className="field">
+              Recurso
+              <select className="input" value={resourceId} onChange={(event) => setResourceId(event.target.value)}>
+                {resources.map((resource) => (
+                  <option key={resource.id} value={resource.id}>{resource.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Unidad
+              <select className="input" value={unitSymbol} onChange={(event) => setUnitSymbol(event.target.value)}>
+                {currentUnits.map((unit) => (
+                  <option key={unit.id} value={unit.symbol}>{unit.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <button className="btn primary" type="submit">Calcular equivalencias</button>
+        </form>
       </section>
 
       <section className="portal-card">
