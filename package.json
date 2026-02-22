@@ -1,0 +1,19 @@
+{
+  "name": "ecoequivalencias",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "mobile",
+    "admin",
+    "shared"
+  ],
+  "scripts": {
+    "dev:all": "scripts/dev-all.sh",
+    "dev:admin": "scripts/dev-admin.sh",
+    "dev:mobile": "scripts/dev-mobile.sh",
+    "dev:check": "scripts/healthcheck.sh",
+    "dev:full": "scripts/dev-local.sh",
+    "test": "npm run test --workspace shared",
+    "test:shared": "npm run test --workspace shared"
+  }
+}
