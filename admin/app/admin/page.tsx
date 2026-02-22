@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 type AppRole = "admin" | "user";
@@ -202,6 +202,11 @@ export default function Page() {
   const [selectedEq, setSelectedEq] = useState("");
   const [selectedSourceForEq, setSelectedSourceForEq] = useState("");
 
+  const resourceFormRef = useRef<HTMLElement | null>(null);
+  const unitFormRef = useRef<HTMLElement | null>(null);
+  const eqFormRef = useRef<HTMLElement | null>(null);
+  const sourceFormRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     void initialize();
   }, []);
@@ -336,6 +341,11 @@ export default function Page() {
       if (hasCurrent) return current;
       return list[0]?.id ?? "";
     });
+  }
+
+  function scrollToForm(ref: React.MutableRefObject<HTMLElement | null>) {
+    if (!ref.current) return;
+    ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function stopAction(message?: string) {
@@ -1017,7 +1027,7 @@ export default function Page() {
       )}
 
       {isAdmin && activeTab === "resources" && (
-        <section className="panel">
+        <section className="panel" ref={resourceFormRef}>
           <h2>Recursos</h2>
           <div className="form-grid">
             <input placeholder="slug" value={resourceForm.slug} onChange={(e) => setResourceForm({ ...resourceForm, slug: e.target.value })} />
@@ -1061,7 +1071,15 @@ export default function Page() {
                     <td>{item.base_unit}</td>
                     <td>{item.factor_kgco2e_per_base_unit}</td>
                     <td className="right">
-                      <button className="mini" onClick={() => setResourceForm({ ...item })}>Editar</button>
+                      <button
+                        className="mini"
+                        onClick={() => {
+                          setResourceForm({ ...item });
+                          scrollToForm(resourceFormRef);
+                        }}
+                      >
+                        Editar
+                      </button>
                       <button className="mini danger" onClick={() => void removeResource(item.id)}>Eliminar</button>
                     </td>
                   </tr>
@@ -1073,7 +1091,7 @@ export default function Page() {
       )}
 
       {isAdmin && activeTab === "units" && (
-        <section className="panel">
+        <section className="panel" ref={unitFormRef}>
           <h2>Unidades y conversiones</h2>
           <div className="form-grid">
             <select value={unitForm.resource_id} onChange={(e) => setUnitForm({ ...unitForm, resource_id: e.target.value })}>
@@ -1126,7 +1144,15 @@ export default function Page() {
                       <td>{item.to_base_factor}</td>
                       <td>{item.is_base ? "Sí" : "No"}</td>
                       <td className="right">
-                        <button className="mini" onClick={() => setUnitForm({ ...item })}>Editar</button>
+                        <button
+                          className="mini"
+                          onClick={() => {
+                            setUnitForm({ ...item });
+                            scrollToForm(unitFormRef);
+                          }}
+                        >
+                          Editar
+                        </button>
                         <button className="mini danger" onClick={() => void removeUnit(item.id)}>Eliminar</button>
                       </td>
                     </tr>
@@ -1139,7 +1165,7 @@ export default function Page() {
       )}
 
       {isAdmin && activeTab === "equivalences" && (
-        <section className="panel">
+        <section className="panel" ref={eqFormRef}>
           <h2>Equivalencias</h2>
           <div className="form-grid">
             <input placeholder="slug" value={eqForm.slug} onChange={(e) => setEqForm({ ...eqForm, slug: e.target.value })} />
@@ -1231,7 +1257,15 @@ export default function Page() {
                       </div>
                     </td>
                     <td className="right">
-                      <button className="mini" onClick={() => setEqForm({ ...item })}>Editar</button>
+                      <button
+                        className="mini"
+                        onClick={() => {
+                          setEqForm({ ...item });
+                          scrollToForm(eqFormRef);
+                        }}
+                      >
+                        Editar
+                      </button>
                       <button className="mini danger" onClick={() => void removeEquivalence(item.id)}>Eliminar</button>
                     </td>
                   </tr>
@@ -1243,7 +1277,7 @@ export default function Page() {
       )}
 
       {isAdmin && activeTab === "sources" && (
-        <section className="panel">
+        <section className="panel" ref={sourceFormRef}>
           <h2>Fuentes científicas</h2>
           <div className="form-grid">
             <input placeholder="key" value={sourceForm.key} onChange={(e) => setSourceForm({ ...sourceForm, key: e.target.value })} />
@@ -1284,7 +1318,15 @@ export default function Page() {
                     <td>{item.year}</td>
                     <td>{item.url ?? item.doi ?? "-"}</td>
                     <td className="right">
-                      <button className="mini" onClick={() => setSourceForm({ ...item })}>Editar</button>
+                      <button
+                        className="mini"
+                        onClick={() => {
+                          setSourceForm({ ...item });
+                          scrollToForm(sourceFormRef);
+                        }}
+                      >
+                        Editar
+                      </button>
                       <button className="mini danger" onClick={() => void removeSource(item.id)}>Eliminar</button>
                     </td>
                   </tr>
