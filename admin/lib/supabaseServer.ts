@@ -21,12 +21,24 @@ export function getServerSupabase() {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: Parameters<typeof cookieStore.set>[0]) {
-        const { name: _ignored, value: _ignoredValue, ...rest } = options as Record<string, unknown>;
-        cookieStore.set({ name, value, ...(rest as Record<string, unknown>) });
+        const cookie = options as unknown as { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: "lax" | "strict" | "none" };
+        cookieStore.set({
+          name,
+          value,
+          path: cookie.path,
+          maxAge: cookie.maxAge,
+          httpOnly: cookie.httpOnly,
+          secure: cookie.secure,
+          sameSite: cookie.sameSite
+        });
       },
       remove(name: string, options: Parameters<typeof cookieStore.set>[0]) {
-        const { name: _ignored, value: _ignoredValue, ...rest } = options as Record<string, unknown>;
-        cookieStore.set({ name, value: "", ...(rest as Record<string, unknown>) });
+        const cookie = options as unknown as { path?: string };
+        cookieStore.set({
+          name,
+          value: "",
+          path: cookie.path
+        });
       }
     }
   });
