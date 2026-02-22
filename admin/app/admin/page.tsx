@@ -280,46 +280,36 @@ export default function Page() {
   }
 
   async function loadAll() {
-    if (!supabase) return;
     setErrorText(null);
-
-    const [v, r, u, e, s, es, p, a, ent] = await Promise.all([
-      supabase.from("dataset_versions").select("id,name,status,valid_from,valid_to,notes").order("valid_from", { ascending: false }),
-      supabase
-        .from("resources")
-        .select("id,version_id,slug,name,category,base_unit,factor_kgco2e_per_base_unit,explanation")
-        .order("name"),
-      supabase.from("resource_units").select("id,resource_id,unit_name,unit_symbol,to_base_factor,is_base").order("unit_name"),
-      supabase
-        .from("equivalences")
-        .select("id,version_id,slug,title,output_unit,description,confidence,co2e_ton_per_unit,formula,is_demo")
-        .order("title"),
-      supabase.from("sources").select("id,key,author,organization,title,year,url,doi,notes").order("year", { ascending: false }),
-      supabase.from("equivalence_sources").select("equivalence_id,source_id"),
-      supabase.from("profiles").select("id,email,role,plan,created_at,updated_at").order("created_at", { ascending: false }),
-      supabase.from("audit_log").select("id,actor_id,table_name,row_id,action,created_at").order("id", { ascending: false }).limit(200),
-      supabase.from("user_entitlements").select("id,user_id,key,value,created_at,updated_at").order("created_at", { ascending: false })
-    ]);
-
-    if (v.error || r.error || u.error || e.error || s.error || es.error || p.error || a.error || ent.error) {
-      const firstError = v.error ?? r.error ?? u.error ?? e.error ?? s.error ?? es.error ?? p.error ?? a.error ?? ent.error;
-      setErrorText(firstError?.message ?? "No se pudo cargar el panel.");
+    const token = await getAccessToken();
+    if (!token) {
+      setErrorText("Sesión inválida.");
       return;
     }
 
-    setVersions(v.data ?? []);
-    setResources(r.data ?? []);
-    setUnits(u.data ?? []);
-    setEquivalences(e.data ?? []);
-    setSources(s.data ?? []);
-    setEquivalenceSources(es.data ?? []);
-    setProfiles((p.data ?? []) as Profile[]);
-    setAuditLog((a.data ?? []) as AuditLog[]);
-    setEntitlements((ent.data ?? []) as UserEntitlement[]);
+    const res = await fetch("/api/admin/data", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const payload = await res.json();
+    if (!res.ok) {
+      setErrorText(payload.error ?? "No se pudo cargar el panel.");
+      return;
+    }
+
+    setVersions(payload.versions ?? []);
+    setResources(payload.resources ?? []);
+    setUnits(payload.units ?? []);
+    setEquivalences(payload.equivalences ?? []);
+    setSources(payload.sources ?? []);
+    setEquivalenceSources(payload.equivalenceSources ?? []);
+    setProfiles((payload.profiles ?? []) as Profile[]);
+    setAuditLog((payload.auditLog ?? []) as AuditLog[]);
+    setEntitlements((payload.entitlements ?? []) as UserEntitlement[]);
 
     setSelectedVersion((current) => {
-      const list = v.data ?? [];
-      const published = list.find((item) => item.status === "published");
+      const list = payload.versions ?? [];
+      const published = list.find((item: Version) => item.status === "published");
       if (published?.id) return published.id;
       const hasCurrent = list.some((item) => item.id === current);
       if (hasCurrent) return current;
