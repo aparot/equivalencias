@@ -22,6 +22,15 @@ const PLAN_LIMITS: Record<AppPlan, number> = {
   enterprise: 200
 };
 
+const RESOURCE_LIMITS: Record<AppPlan, number> = {
+  free: 30,
+  pro: 80,
+  enterprise: 200
+};
+
+const GUEST_RESOURCE_LIMIT = 10;
+const GUEST_EQ_LIMIT = 3;
+
 const RESULT_CATEGORY_LABELS: Record<Exclude<ResultCategory, "all">, string> = {
   transportes: "Transportes",
   residuos: "Residuos",
@@ -75,6 +84,7 @@ export default function PortalClient() {
   const [results, setResults] = useState<CalculationResult[]>([]);
   const [resultSearch, setResultSearch] = useState("");
   const [resultCategory, setResultCategory] = useState<ResultCategory>("all");
+  const [showAuthPanel, setShowAuthPanel] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -94,15 +104,19 @@ export default function PortalClient() {
     void bootstrap();
   }, []);
 
+  const isGuest = !profileName;
+  const resourceLimit = isGuest ? GUEST_RESOURCE_LIMIT : RESOURCE_LIMITS[profilePlan];
+  const equivalenceLimit = isGuest ? GUEST_EQ_LIMIT : PLAN_LIMITS[profilePlan];
+  const availableResources = useMemo(() => resources.slice(0, resourceLimit), [resources, resourceLimit]);
   const currentResource = useMemo(
-    () => resources.find((resource) => resource.id === resourceId) ?? resources[0],
-    [resourceId, resources]
+    () => availableResources.find((resource) => resource.id === resourceId) ?? availableResources[0],
+    [resourceId, availableResources]
   );
   const filteredResources = useMemo(() => {
     const query = resourceFilter.trim().toLowerCase();
-    if (!query) return resources;
-    return resources.filter((resource) => `${resource.name} ${resource.slug}`.toLowerCase().includes(query));
-  }, [resourceFilter, resources]);
+    if (!query) return availableResources;
+    return availableResources.filter((resource) => `${resource.name} ${resource.slug}`.toLowerCase().includes(query));
+  }, [resourceFilter, availableResources]);
 
   const currentUnits = useMemo(() => {
     const units = currentResource?.units ?? [];
@@ -144,6 +158,26 @@ export default function PortalClient() {
     }
     return base;
   }, [categorizedResults]);
+
+  useEffect(() => {
+    if (availableResources.length === 0) {
+      setResourceId("");
+      setUnitSymbol("");
+      return;
+    }
+    const selected = availableResources.find((resource) => resource.id === resourceId);
+    if (!selected) {
+      const next = availableResources[0];
+      setResourceId(next.id);
+      const nextUnit = next.units?.find((unit) => unit.symbol.toLowerCase() === "kg") ?? next.units?.[0];
+      setUnitSymbol(nextUnit?.symbol ?? "");
+      return;
+    }
+    if (!selected.units.some((unit) => unit.symbol === unitSymbol)) {
+      const nextUnit = selected.units?.find((unit) => unit.symbol.toLowerCase() === "kg") ?? selected.units?.[0];
+      setUnitSymbol(nextUnit?.symbol ?? "");
+    }
+  }, [availableResources, resourceId, unitSymbol]);
 
   async function bootstrap() {
     await loadPublishedDataset();
@@ -284,83 +318,14 @@ export default function PortalClient() {
       setAuthNotice(parsed.error ?? "Cantidad inválida");
       return;
     }
-    const maxResults = PLAN_LIMITS[profilePlan];
     const nextResults = calculateEquivalences(
       { resource: currentResource, unit: currentUnit, quantity: parsed.value },
       equivalences,
-      maxResults
+      equivalenceLimit
     );
     setResults(nextResults);
     setResultCategory("all");
     setResultSearch("");
-  }
-
-  if (!profileName) {
-    return (
-      <main className="portal-root portal-root--auth">
-        <section className="portal-card">
-          <p className="eyebrow">EcoEquivalencias</p>
-          <h1>Ingresa para calcular tu impacto</h1>
-          <p className="muted">Accede con tu cuenta para transformar emisiones en equivalencias claras.</p>
-          <div className="portal-toggle">
-            <button
-              className={authMode === "login" ? "toggle active" : "toggle"}
-              onClick={() => setAuthMode("login")}
-              type="button"
-            >
-              Ingresar
-            </button>
-            <button
-              className={authMode === "signup" ? "toggle active" : "toggle"}
-              onClick={() => setAuthMode("signup")}
-              type="button"
-            >
-              Registrarme
-            </button>
-          </div>
-          <form
-            className="portal-form portal-form--auth"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (authMode === "login") {
-                void signIn();
-              } else {
-                void signUp();
-              }
-            }}
-          >
-            <div className="portal-grid" style={{ gridTemplateColumns: "1fr" }}>
-              <input
-                className="input"
-                placeholder="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-              <input
-                className="input"
-                placeholder="Contraseña"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              {authMode === "signup" && (
-                <input
-                  className="input"
-                  placeholder="Confirmar contraseña"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                />
-              )}
-            </div>
-            <button className="btn primary" type="submit" disabled={authLoading}>
-              {authLoading ? "Procesando..." : authMode === "login" ? "Ingresar" : "Crear cuenta"}
-            </button>
-          </form>
-          {authNotice && <p className="alert">{authNotice}</p>}
-        </section>
-      </main>
-    );
   }
 
   if (profileRole === "admin") {
@@ -375,11 +340,70 @@ export default function PortalClient() {
       <header className="portal-header">
         <div>
           <p className="eyebrow">EcoEquivalencias</p>
-          <h1>Hola, {profileName}</h1>
-          <p className="muted">Convierte emisiones en equivalencias claras.</p>
+          <h1>{profileName ? `Hola, ${profileName}` : "Calcula tu impacto ahora"}</h1>
+          <p className="muted">
+            {profileName
+              ? "Convierte emisiones en equivalencias claras."
+              : "Modo invitado: 10 recursos y 3 ecoequivalencias por cálculo."}
+          </p>
         </div>
-        <button className="btn ghost" onClick={signOut}>Cerrar sesión</button>
+        {profileName ? (
+          <button className="btn ghost" onClick={signOut}>Cerrar sesión</button>
+        ) : (
+          <div className="auth-actions">
+            <button
+              className="btn ghost"
+              onClick={() => {
+                setAuthMode("login");
+                setShowAuthPanel(true);
+              }}
+            >
+              Ingresar
+            </button>
+            <button
+              className="btn primary"
+              onClick={() => {
+                setAuthMode("signup");
+                setShowAuthPanel(true);
+              }}
+            >
+              Registrarme
+            </button>
+          </div>
+        )}
       </header>
+
+      {isGuest && (
+        <section className="upgrade-banner">
+          <p>
+            Estás en modo invitado: puedes calcular con <strong>10 recursos</strong> y ver
+            <strong> 3 ecoequivalencias</strong>. Inicia sesión o regístrate para desbloquear
+            <strong> 30 recursos</strong> y más resultados.
+          </p>
+          <div className="upgrade-actions">
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => {
+                setAuthMode("login");
+                setShowAuthPanel(true);
+              }}
+            >
+              Ingresar
+            </button>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={() => {
+                setAuthMode("signup");
+                setShowAuthPanel(true);
+              }}
+            >
+              Crear cuenta
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="portal-card">
         <form
@@ -452,6 +476,10 @@ export default function PortalClient() {
           </div>
           <button className="btn primary" type="submit">Calcular equivalencias</button>
         </form>
+        <p className="muted">
+          Recursos visibles: <strong>{availableResources.length}</strong> de {resources.length}.{" "}
+          {isGuest ? "Regístrate para desbloquear más." : "Nivel actual activo."}
+        </p>
       </section>
 
       <section className="portal-card portal-card--results">
@@ -502,6 +530,73 @@ export default function PortalClient() {
           </>
         )}
       </section>
+
+      {isGuest && showAuthPanel && (
+        <section className="portal-card portal-card--auth-inline">
+          <h2>{authMode === "login" ? "Inicia sesión para desbloquear más" : "Crea tu cuenta para desbloquear más"}</h2>
+          <div className="portal-toggle">
+            <button
+              className={authMode === "login" ? "toggle active" : "toggle"}
+              onClick={() => setAuthMode("login")}
+              type="button"
+            >
+              Ingresar
+            </button>
+            <button
+              className={authMode === "signup" ? "toggle active" : "toggle"}
+              onClick={() => setAuthMode("signup")}
+              type="button"
+            >
+              Registrarme
+            </button>
+          </div>
+          <form
+            className="portal-form portal-form--auth"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (authMode === "login") {
+                void signIn();
+              } else {
+                void signUp();
+              }
+            }}
+          >
+            <div className="portal-grid" style={{ gridTemplateColumns: "1fr" }}>
+              <input
+                className="input"
+                placeholder="Email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Contraseña"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              {authMode === "signup" && (
+                <input
+                  className="input"
+                  placeholder="Confirmar contraseña"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              )}
+            </div>
+            <div className="auth-actions">
+              <button className="btn primary" type="submit" disabled={authLoading}>
+                {authLoading ? "Procesando..." : authMode === "login" ? "Ingresar" : "Crear cuenta"}
+              </button>
+              <button className="btn ghost" type="button" onClick={() => setShowAuthPanel(false)}>
+                Cerrar
+              </button>
+            </div>
+          </form>
+          {authNotice && <p className="alert">{authNotice}</p>}
+        </section>
+      )}
 
     </main>
   );
