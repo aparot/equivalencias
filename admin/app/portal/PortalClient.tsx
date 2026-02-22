@@ -32,7 +32,8 @@ export default function PortalClient() {
   const [resources, setResources] = useState<ResourceWithUnits[]>([]);
   const [equivalences, setEquivalences] = useState<Equivalence[]>([]);
   const [resourceId, setResourceId] = useState("");
-  const [resourceQuery, setResourceQuery] = useState("");
+  const [resourceOpen, setResourceOpen] = useState(false);
+  const [resourceFilter, setResourceFilter] = useState("");
   const [unitSymbol, setUnitSymbol] = useState("");
   const [quantity, setQuantity] = useState("100");
   const [results, setResults] = useState<CalculationResult[]>([]);
@@ -55,25 +56,15 @@ export default function PortalClient() {
     void bootstrap();
   }, []);
 
-  useEffect(() => {
-    const query = resourceQuery.trim().toLowerCase();
-    if (!query) return;
-    const match = resources.find((resource) => resource.name.toLowerCase() === query);
-    if (match && match.id !== resourceId) {
-      setResourceId(match.id);
-      setUnitSymbol(match.units?.[0]?.symbol ?? "");
-    }
-  }, [resourceQuery, resources, resourceId]);
-
   const currentResource = useMemo(
     () => resources.find((resource) => resource.id === resourceId) ?? resources[0],
     [resourceId, resources]
   );
   const filteredResources = useMemo(() => {
-    const query = resourceQuery.trim().toLowerCase();
+    const query = resourceFilter.trim().toLowerCase();
     if (!query) return resources;
     return resources.filter((resource) => `${resource.name} ${resource.slug}`.toLowerCase().includes(query));
-  }, [resourceQuery, resources]);
+  }, [resourceFilter, resources]);
 
   const currentUnits = useMemo(() => {
     const units = currentResource?.units ?? [];
@@ -159,7 +150,6 @@ export default function PortalClient() {
     );
     const initialResource = preferred ?? normalizedResources[0];
     setResourceId(initialResource?.id ?? "");
-    setResourceQuery(initialResource?.name ?? "");
     setUnitSymbol(initialResource?.units?.[0]?.symbol ?? "");
   }
 
@@ -339,34 +329,45 @@ export default function PortalClient() {
             </label>
             <label className="field">
               Recurso
-              <input
-                className="input"
-                placeholder="Busca un recurso (ej: Botellas de plástico)"
-                value={resourceQuery}
-                onChange={(event) => setResourceQuery(event.target.value)}
-                list="resource-options"
-              />
-              <datalist id="resource-options">
-                {filteredResources.map((resource) => (
-                  <option key={resource.id} value={resource.name} />
-                ))}
-              </datalist>
-              <select
-                className="input"
-                value={resourceId}
-                onChange={(event) => {
-                  setResourceId(event.target.value);
-                  const chosen = resources.find((r) => r.id === event.target.value);
-                  if (chosen) {
-                    setResourceQuery(chosen.name);
-                    setUnitSymbol(chosen.units?.[0]?.symbol ?? "");
-                  }
-                }}
-              >
-                {filteredResources.map((resource) => (
-                  <option key={resource.id} value={resource.id}>{resource.name}</option>
-                ))}
-              </select>
+              <div className="combo">
+                <button
+                  className="combo-trigger"
+                  type="button"
+                  onClick={() => {
+                    setResourceOpen((prev) => !prev);
+                    setResourceFilter("");
+                  }}
+                >
+                  <span>{currentResource?.name ?? "Selecciona un recurso"}</span>
+                  <span className="combo-caret">▾</span>
+                </button>
+                {resourceOpen && (
+                  <div className="combo-panel">
+                    <input
+                      className="combo-search"
+                      placeholder="Buscar recurso..."
+                      value={resourceFilter}
+                      onChange={(event) => setResourceFilter(event.target.value)}
+                    />
+                    <div className="combo-list">
+                      {filteredResources.map((resource) => (
+                        <button
+                          key={resource.id}
+                          type="button"
+                          className="combo-item"
+                          onClick={() => {
+                            setResourceId(resource.id);
+                            setUnitSymbol(resource.units?.[0]?.symbol ?? "");
+                            setResourceOpen(false);
+                          }}
+                        >
+                          {resource.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </label>
             <label className="field">
               Unidad
