@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3000",
     "build": "next build",
-    "vercel-build": "bash scripts/build-portal.sh && next build",
     "start": "next start"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.1",
+    "@supabase/ssr": "^0.3.0",
     "next": "14.2.5",
     "react": "18.2.0",
     "react-dom": "18.2.0",
