@@ -266,8 +266,6 @@ export default function Page() {
 
   const selectedVersionData = useMemo(() => versions.find((v) => v.id === selectedVersion) ?? null, [versions, selectedVersion]);
 
-  const publishedVersion = useMemo(() => versions.find((v) => v.status === "published") ?? null, [versions]);
-
   const sourceCountByEq = useMemo(() => {
     const map = new Map<string, number>();
     for (const link of equivalenceSources) {
@@ -290,7 +288,7 @@ export default function Page() {
       const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       if (error || profile?.role !== "admin") {
         setIsAdmin(false);
-        setErrorText("Acceso restringido: necesitas rol admin.");
+      setErrorText("Acceso restringido: necesitas rol admin.");
         await supabase.auth.signOut();
         setSessionEmail(null);
         setLoading(false);
@@ -306,7 +304,7 @@ export default function Page() {
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
-      setErrorText("Sesión inválida.");
+      setErrorText("Sesión inválida. Vuelve a iniciar sesión.");
       return;
     }
 
@@ -340,29 +338,22 @@ export default function Page() {
     });
   }
 
-  async function refreshData() {
-    setActionBusy(true);
-    setActionNote("Actualizando datos...");
-    await loadAll();
-    stopAction("Datos actualizados");
-  }
-
   function stopAction(message?: string) {
     setActionBusy(false);
-    const note = message
-      ? (message.includes("Esto funcionó") ? message : `Esto funcionó: ${message}`)
-      : "Esto funcionó";
+    const note = message ?? "Acción completada.";
     setActionNote(note);
-    if (note) {
-      window.setTimeout(() => setActionNote(null), 2000);
-    }
+  }
+
+  function formatError(error: { message?: string } | null, fallback: string) {
+    if (!error?.message) return fallback;
+    return `${fallback} (${error.message})`;
   }
 
   async function login() {
     if (!supabase) return;
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo iniciar sesión"));
       return;
     }
     const user = data.user;
@@ -408,14 +399,14 @@ export default function Page() {
     };
     const { error } = await supabase.from("dataset_versions").insert(payload);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo crear la versión"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     setNewVersionName("");
     await loadAll();
-    stopAction("Listo");
+    stopAction("Versión creada.");
   }
 
   async function publishVersion(versionId: string) {
@@ -429,7 +420,7 @@ export default function Page() {
       .eq("status", "published");
 
     if (archiveError) {
-      setErrorText(archiveError.message);
+      setErrorText(formatError(archiveError, "No se pudo archivar la versión anterior"));
       setActionBusy(false);
       setActionNote(null);
       return;
@@ -441,14 +432,14 @@ export default function Page() {
       .eq("id", versionId);
 
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo publicar la versión"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
 
     await loadAll();
-    stopAction("Listo");
+    stopAction("Versión publicada.");
   }
 
   async function saveResource() {
@@ -475,14 +466,14 @@ export default function Page() {
 
     const { error } = await query;
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo guardar el recurso"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     setResourceForm(DEFAULT_RESOURCE_FORM);
     await loadAll();
-    stopAction("Listo");
+    stopAction("Recurso guardado.");
   }
 
   async function removeResource(id: string) {
@@ -491,13 +482,13 @@ export default function Page() {
     setActionNote("Eliminando recurso...");
     const { error } = await supabase.from("resources").delete().eq("id", id);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo eliminar el recurso"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Listo");
+    stopAction("Recurso eliminado.");
   }
 
   async function saveUnit() {
@@ -522,13 +513,13 @@ export default function Page() {
 
     const { error } = await query;
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo guardar la unidad"));
       stopAction();
       return;
     }
     setUnitForm(DEFAULT_UNIT_FORM);
     await loadAll();
-    stopAction("Unidad guardada");
+    stopAction("Unidad guardada.");
   }
 
   async function removeUnit(id: string) {
@@ -537,12 +528,12 @@ export default function Page() {
     setActionNote("Eliminando unidad...");
     const { error } = await supabase.from("resource_units").delete().eq("id", id);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo eliminar la unidad"));
       stopAction();
       return;
     }
     await loadAll();
-    stopAction("Unidad eliminada");
+    stopAction("Unidad eliminada.");
   }
 
   async function saveEquivalence() {
@@ -572,14 +563,14 @@ export default function Page() {
 
     const { error } = await query;
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo guardar la equivalencia"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     setEqForm(DEFAULT_EQ_FORM);
     await loadAll();
-    stopAction("Listo");
+    stopAction("Equivalencia guardada.");
   }
 
   async function removeEquivalence(id: string) {
@@ -588,13 +579,13 @@ export default function Page() {
     setActionNote("Eliminando equivalencia...");
     const { error } = await supabase.from("equivalences").delete().eq("id", id);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo eliminar la equivalencia"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Listo");
+    stopAction("Equivalencia eliminada.");
   }
 
   async function saveSource() {
@@ -621,14 +612,14 @@ export default function Page() {
 
     const { error } = await query;
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo guardar la fuente"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     setSourceForm(DEFAULT_SOURCE_FORM);
     await loadAll();
-    stopAction("Listo");
+    stopAction("Fuente guardada.");
   }
 
   async function removeSource(id: string) {
@@ -637,13 +628,13 @@ export default function Page() {
     setActionNote("Eliminando fuente...");
     const { error } = await supabase.from("sources").delete().eq("id", id);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo eliminar la fuente"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Listo");
+    stopAction("Fuente eliminada.");
   }
 
   async function linkSourceToEquivalence() {
@@ -659,14 +650,14 @@ export default function Page() {
       source_id: selectedSourceForEq
     });
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo vincular la fuente"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     setSelectedSourceForEq("");
     await loadAll();
-    stopAction("Fuente vinculada");
+    stopAction("Fuente vinculada.");
   }
 
   async function unlinkSourceFromEquivalence(equivalenceId: string, sourceId: string) {
@@ -679,13 +670,13 @@ export default function Page() {
       .eq("equivalence_id", equivalenceId)
       .eq("source_id", sourceId);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo quitar el vínculo"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Vínculo eliminado");
+    stopAction("Vínculo eliminado.");
   }
 
   async function updateUserRole(profileId: string, role: AppRole) {
@@ -694,13 +685,13 @@ export default function Page() {
     setActionNote("Actualizando rol...");
     const { error } = await supabase.from("profiles").update({ role }).eq("id", profileId);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo actualizar el rol"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Rol actualizado");
+    stopAction("Rol actualizado.");
   }
 
   async function updateUserPlan(profileId: string, plan: AppPlan) {
@@ -709,13 +700,13 @@ export default function Page() {
     setActionNote("Actualizando plan...");
     const { error } = await supabase.from("profiles").update({ plan }).eq("id", profileId);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo actualizar el plan"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Plan actualizado");
+    stopAction("Plan actualizado.");
   }
 
   async function getAccessToken(): Promise<string | null> {
@@ -741,7 +732,7 @@ export default function Page() {
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
-      setErrorText("Sesión inválida.");
+      setErrorText("Sesión inválida. Vuelve a iniciar sesión.");
       setUserActionLoading(false);
       return;
     }
@@ -773,7 +764,7 @@ export default function Page() {
     setNewUserPlan("free");
     await loadAll();
     setUserActionLoading(false);
-    stopAction("Usuario creado");
+    stopAction("Usuario creado.");
   }
 
   async function resetUserPassword(userId: string) {
@@ -790,7 +781,7 @@ export default function Page() {
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
-      setErrorText("Sesión inválida.");
+      setErrorText("Sesión inválida. Vuelve a iniciar sesión.");
       setUserActionLoading(false);
       return;
     }
@@ -810,7 +801,7 @@ export default function Page() {
       return;
     }
     setUserActionLoading(false);
-    stopAction("Contraseña actualizada");
+    stopAction("Contraseña actualizada.");
   }
 
   async function deleteUser(userId: string) {
@@ -823,7 +814,7 @@ export default function Page() {
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
-      setErrorText("Sesión inválida.");
+      setErrorText("Sesión inválida. Vuelve a iniciar sesión.");
       setUserActionLoading(false);
       return;
     }
@@ -844,7 +835,7 @@ export default function Page() {
     }
     await loadAll();
     setUserActionLoading(false);
-    stopAction("Usuario eliminado");
+    stopAction("Usuario eliminado.");
   }
 
   function handleUserCreateKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -864,7 +855,7 @@ export default function Page() {
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
-      setErrorText("Sesión inválida.");
+      setErrorText("Sesión inválida. Vuelve a iniciar sesión.");
       setUserActionLoading(false);
       return;
     }
@@ -885,7 +876,7 @@ export default function Page() {
     }
     await loadAll();
     setUserActionLoading(false);
-    stopAction("Email actualizado");
+    stopAction("Email actualizado.");
   }
 
   async function addEntitlement() {
@@ -902,14 +893,14 @@ export default function Page() {
       value: entitlementValue.trim()
     });
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo guardar el entitlement"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     setEntitlementValue("");
     await loadAll();
-    stopAction("Entitlement guardado");
+    stopAction("Entitlement guardado.");
   }
 
   async function removeEntitlement(entitlementId: string) {
@@ -918,17 +909,16 @@ export default function Page() {
     setActionNote("Eliminando entitlement...");
     const { error } = await supabase.from("user_entitlements").delete().eq("id", entitlementId);
     if (error) {
-      setErrorText(error.message);
+      setErrorText(formatError(error, "No se pudo eliminar el entitlement"));
       setActionBusy(false);
       setActionNote(null);
       return;
     }
     await loadAll();
-    stopAction("Entitlement eliminado");
+    stopAction("Entitlement eliminado.");
   }
 
   const headerStats = [
-    { label: "Versión activa", value: publishedVersion?.name ?? "Sin publicar" },
     { label: "Recursos en versión", value: String(resourcesInVersion.length) },
     { label: "Equivalencias en versión", value: String(equivalencesInVersion.length) },
     { label: "Usuarios", value: String(profiles.length) }
@@ -955,8 +945,22 @@ export default function Page() {
         </div>
       </header>
 
-      {errorText && <div className="alert">{errorText}</div>}
-      {actionNote && <div className="alert">{actionNote}</div>}
+      {errorText && (
+        <div className="alert error">
+          <span>{errorText}</span>
+          <button className="alert-close" onClick={() => setErrorText(null)} aria-label="Cerrar alerta">
+            ×
+          </button>
+        </div>
+      )}
+      {actionNote && (
+        <div className="alert success">
+          <span>{actionNote}</span>
+          <button className="alert-close" onClick={() => setActionNote(null)} aria-label="Cerrar alerta">
+            ×
+          </button>
+        </div>
+      )}
 
       {isAdmin && (
         <section className="stats-grid">
@@ -966,14 +970,6 @@ export default function Page() {
               <p className="stat-value">{stat.value}</p>
             </article>
           ))}
-        </section>
-      )}
-
-      {isAdmin && (
-        <section className="version-bar">
-          <button className="btn ghost" onClick={() => void refreshData()} disabled={actionBusy}>
-            {actionBusy ? "Cargando..." : "Actualizar"}
-          </button>
         </section>
       )}
 

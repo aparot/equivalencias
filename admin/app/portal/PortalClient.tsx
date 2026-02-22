@@ -35,6 +35,7 @@ export default function PortalClient() {
   const [unitSymbol, setUnitSymbol] = useState("");
   const [quantity, setQuantity] = useState("6");
   const [results, setResults] = useState<CalculationResult[]>([]);
+  const [equivalenceSearch, setEquivalenceSearch] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -60,6 +61,14 @@ export default function PortalClient() {
   );
   const currentUnits = currentResource?.units ?? [];
   const currentUnit = currentUnits.find((unit) => unit.symbol === unitSymbol) ?? currentUnits[0];
+  const filteredEquivalences = useMemo(() => {
+    const query = equivalenceSearch.trim().toLowerCase();
+    if (!query) return equivalences;
+    return equivalences.filter((eq) => {
+      const text = `${eq.title} ${eq.slug} ${eq.outputUnit} ${eq.description}`.toLowerCase();
+      return text.includes(query);
+    });
+  }, [equivalenceSearch, equivalences]);
 
   async function bootstrap() {
     await loadPublishedDataset();
@@ -334,11 +343,34 @@ export default function PortalClient() {
               <div key={item.equivalenceId} className="result-card">
                 <h3>{item.title}</h3>
                 <p className="result-value">{item.value.toFixed(2)} {item.outputUnit}</p>
-                <p className="muted">{item.description}</p>
+                <p className="equiv-desc">{item.description}</p>
               </div>
             ))}
           </div>
         )}
+      </section>
+
+      <section className="portal-card">
+        <h2>Ecoequivalencias disponibles</h2>
+        <div className="equiv-toolbar">
+          <input
+            className="input"
+            placeholder="Buscar equivalencias..."
+            value={equivalenceSearch}
+            onChange={(event) => setEquivalenceSearch(event.target.value)}
+          />
+          <span className="muted">{filteredEquivalences.length} resultados</span>
+        </div>
+        <div className="equiv-grid">
+          {filteredEquivalences.map((eq, index) => (
+            <article key={eq.id} className="equiv-card">
+              <div className="equiv-index">{String(index + 1).padStart(2, "0")}_</div>
+              <h3>{eq.title}</h3>
+              <div className="equiv-value">{eq.outputUnit}</div>
+              <p className="equiv-desc">{eq.description}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </main>
   );
