@@ -30,23 +30,25 @@ const RESOURCE_LIMITS: Record<AppPlan, number> = {
 
 const GUEST_RESOURCE_LIMIT = 10;
 const GUEST_EQ_LIMIT = 3;
-const GUEST_RESOURCE_PRIORITY: string[] = [
-  "papel mezclado",
-  "papel mixto",
-  "papel de oficina",
-  "contenedores de corrugado",
-  "carton",
-  "vidrio",
-  "latas de aluminio",
-  "aluminio",
-  "pet",
-  "hdpe",
-  "pp",
-  "plastico",
-  "residuos de alimentos",
-  "organica",
-  "organico",
-  "mezcla de reciclables"
+const GUEST_RESOURCE_TARGETS: Array<{ label: string; slugs: string[]; fallbackContains?: string[] }> = [
+  { label: "Vidrio", slugs: ["vidrio"] },
+  { label: "Tetrapak", slugs: ["tetrapak"] },
+  { label: "Mezcla de plásticos", slugs: ["mezcla-de-plasticos"] },
+  {
+    label: "Papel",
+    slugs: ["papel-mezclado-general", "papel-mezclado-residencial", "papel-mezclado-oficinas", "papel-de-oficina"],
+    fallbackContains: ["papel"]
+  },
+  { label: "Neumáticos", slugs: ["neumaticos"] },
+  { label: "Latas de aluminio", slugs: ["latas-de-aluminio"] },
+  { label: "Plástico PET", slugs: ["pet"] },
+  { label: "Plástico PP", slugs: ["pp"] },
+  { label: "Plástico HDPE", slugs: ["hdpe"] },
+  {
+    label: "Orgánicos",
+    slugs: ["residuos-de-alimentos", "mezcla-organica"],
+    fallbackContains: ["organic", "organico", "orgánico"]
+  }
 ];
 
 const RESULT_CATEGORY_LABELS: Record<Exclude<ResultCategory, "all">, string> = {
@@ -127,20 +129,33 @@ export default function PortalClient() {
   const equivalenceLimit = isGuest ? GUEST_EQ_LIMIT : PLAN_LIMITS[profilePlan];
   const availableResources = useMemo(() => {
     if (!isGuest) return resources.slice(0, resourceLimit);
-    const scored = resources
-      .map((resource) => {
-        const text = normalizeText(`${resource.name} ${resource.slug}`);
-        const score = GUEST_RESOURCE_PRIORITY.reduce((best, keyword, index) => {
-          if (!text.includes(keyword)) return best;
-          return Math.max(best, 100 - index);
-        }, 0);
-        return { resource, score };
-      })
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return a.resource.name.localeCompare(b.resource.name, "es");
-      });
-    return scored.slice(0, resourceLimit).map((item) => item.resource);
+    const taken = new Set<string>();
+    const selected: ResourceWithUnits[] = [];
+
+    for (const target of GUEST_RESOURCE_TARGETS) {
+      let found = resources.find((resource) => target.slugs.includes(resource.slug) && !taken.has(resource.id));
+      if (!found && target.fallbackContains?.length) {
+        found = resources.find((resource) => {
+          const haystack = normalizeText(`${resource.name} ${resource.slug}`);
+          return target.fallbackContains?.some((token) => haystack.includes(normalizeText(token))) && !taken.has(resource.id);
+        });
+      }
+      if (found) {
+        selected.push(found);
+        taken.add(found.id);
+      }
+    }
+
+    if (selected.length < resourceLimit) {
+      for (const resource of resources) {
+        if (taken.has(resource.id)) continue;
+        selected.push(resource);
+        taken.add(resource.id);
+        if (selected.length >= resourceLimit) break;
+      }
+    }
+
+    return selected.slice(0, resourceLimit);
   }, [isGuest, resourceLimit, resources]);
   const currentResource = useMemo(
     () => availableResources.find((resource) => resource.id === resourceId) ?? availableResources[0],
