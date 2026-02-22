@@ -340,6 +340,13 @@ export default function Page() {
     });
   }
 
+  async function refreshData() {
+    setActionBusy(true);
+    setActionNote("Actualizando datos...");
+    await loadAll();
+    stopAction("Datos actualizados");
+  }
+
   function stopAction(message?: string) {
     setActionBusy(false);
     const note = message
@@ -964,7 +971,9 @@ export default function Page() {
 
       {isAdmin && (
         <section className="version-bar">
-          <button className="btn ghost" onClick={() => void loadAll()}>{loading ? "Cargando..." : "Actualizar"}</button>
+          <button className="btn ghost" onClick={() => void refreshData()} disabled={actionBusy}>
+            {actionBusy ? "Cargando..." : "Actualizar"}
+          </button>
         </section>
       )}
 
@@ -1028,7 +1037,9 @@ export default function Page() {
             <textarea placeholder="explicación" value={resourceForm.explanation} onChange={(e) => setResourceForm({ ...resourceForm, explanation: e.target.value })} />
           </div>
           <div className="actions-row">
-            <button className="btn primary" onClick={saveResource}>{resourceForm.id ? "Guardar cambios" : "Crear recurso"}</button>
+            <button className="btn primary" onClick={saveResource} disabled={actionBusy}>
+              {actionBusy ? "Procesando..." : (resourceForm.id ? "Guardar cambios" : "Crear recurso")}
+            </button>
             <button className="btn ghost" onClick={() => setResourceForm(DEFAULT_RESOURCE_FORM)}>Limpiar</button>
             <input className="search" placeholder="Buscar recursos..." value={resourceSearch} onChange={(e) => setResourceSearch(e.target.value)} />
           </div>
@@ -1089,7 +1100,9 @@ export default function Page() {
             </select>
           </div>
           <div className="actions-row">
-            <button className="btn primary" onClick={saveUnit}>{unitForm.id ? "Guardar cambios" : "Crear unidad"}</button>
+            <button className="btn primary" onClick={saveUnit} disabled={actionBusy || !unitForm.resource_id}>
+              {actionBusy ? "Procesando..." : (unitForm.id ? "Guardar cambios" : "Crear unidad")}
+            </button>
             <button className="btn ghost" onClick={() => setUnitForm(DEFAULT_UNIT_FORM)}>Limpiar</button>
             <input className="search" placeholder="Buscar unidades..." value={unitSearch} onChange={(e) => setUnitSearch(e.target.value)} />
           </div>
@@ -1154,7 +1167,9 @@ export default function Page() {
             <textarea placeholder="descripción" value={eqForm.description} onChange={(e) => setEqForm({ ...eqForm, description: e.target.value })} />
           </div>
           <div className="actions-row">
-            <button className="btn primary" onClick={saveEquivalence}>{eqForm.id ? "Guardar cambios" : "Crear equivalencia"}</button>
+            <button className="btn primary" onClick={saveEquivalence} disabled={actionBusy}>
+              {actionBusy ? "Procesando..." : (eqForm.id ? "Guardar cambios" : "Crear equivalencia")}
+            </button>
             <button className="btn ghost" onClick={() => setEqForm(DEFAULT_EQ_FORM)}>Limpiar</button>
             <input className="search" placeholder="Buscar equivalencias..." value={eqSearch} onChange={(e) => setEqSearch(e.target.value)} />
           </div>
@@ -1174,7 +1189,9 @@ export default function Page() {
                   <option key={source.id} value={source.id}>{source.organization} ({source.year})</option>
                 ))}
               </select>
-              <button className="btn" onClick={linkSourceToEquivalence}>Vincular</button>
+              <button className="btn" onClick={linkSourceToEquivalence} disabled={actionBusy}>
+                {actionBusy ? "Vinculando..." : "Vincular"}
+              </button>
             </div>
           </div>
 
@@ -1243,7 +1260,9 @@ export default function Page() {
             <textarea placeholder="notas" value={sourceForm.notes ?? ""} onChange={(e) => setSourceForm({ ...sourceForm, notes: e.target.value })} />
           </div>
           <div className="actions-row">
-            <button className="btn primary" onClick={saveSource}>{sourceForm.id ? "Guardar cambios" : "Crear fuente"}</button>
+            <button className="btn primary" onClick={saveSource} disabled={actionBusy}>
+              {actionBusy ? "Procesando..." : (sourceForm.id ? "Guardar cambios" : "Crear fuente")}
+            </button>
             <button className="btn ghost" onClick={() => setSourceForm(DEFAULT_SOURCE_FORM)}>Limpiar</button>
             <input className="search" placeholder="Buscar fuentes..." value={sourceSearch} onChange={(e) => setSourceSearch(e.target.value)} />
           </div>
@@ -1319,7 +1338,9 @@ export default function Page() {
               </select>
               <input placeholder="key (ej: max_results)" value={entitlementKey} onChange={(e) => setEntitlementKey(e.target.value)} />
               <input placeholder="value (ej: 25)" value={entitlementValue} onChange={(e) => setEntitlementValue(e.target.value)} />
-              <button className="btn ghost" onClick={addEntitlement}>Guardar entitlement</button>
+              <button className="btn ghost" onClick={addEntitlement} disabled={actionBusy}>
+                {actionBusy ? "Guardando..." : "Guardar entitlement"}
+              </button>
             </div>
           </div>
           <div className="table-wrap">
