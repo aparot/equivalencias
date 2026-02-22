@@ -30,6 +30,24 @@ const RESOURCE_LIMITS: Record<AppPlan, number> = {
 
 const GUEST_RESOURCE_LIMIT = 10;
 const GUEST_EQ_LIMIT = 3;
+const GUEST_RESOURCE_PRIORITY: string[] = [
+  "papel mezclado",
+  "papel mixto",
+  "papel de oficina",
+  "contenedores de corrugado",
+  "carton",
+  "vidrio",
+  "latas de aluminio",
+  "aluminio",
+  "pet",
+  "hdpe",
+  "pp",
+  "plastico",
+  "residuos de alimentos",
+  "organica",
+  "organico",
+  "mezcla de reciclables"
+];
 
 const RESULT_CATEGORY_LABELS: Record<Exclude<ResultCategory, "all">, string> = {
   transportes: "Transportes",
@@ -107,7 +125,23 @@ export default function PortalClient() {
   const isGuest = !profileName;
   const resourceLimit = isGuest ? GUEST_RESOURCE_LIMIT : RESOURCE_LIMITS[profilePlan];
   const equivalenceLimit = isGuest ? GUEST_EQ_LIMIT : PLAN_LIMITS[profilePlan];
-  const availableResources = useMemo(() => resources.slice(0, resourceLimit), [resources, resourceLimit]);
+  const availableResources = useMemo(() => {
+    if (!isGuest) return resources.slice(0, resourceLimit);
+    const scored = resources
+      .map((resource) => {
+        const text = normalizeText(`${resource.name} ${resource.slug}`);
+        const score = GUEST_RESOURCE_PRIORITY.reduce((best, keyword, index) => {
+          if (!text.includes(keyword)) return best;
+          return Math.max(best, 100 - index);
+        }, 0);
+        return { resource, score };
+      })
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.resource.name.localeCompare(b.resource.name, "es");
+      });
+    return scored.slice(0, resourceLimit).map((item) => item.resource);
+  }, [isGuest, resourceLimit, resources]);
   const currentResource = useMemo(
     () => availableResources.find((resource) => resource.id === resourceId) ?? availableResources[0],
     [resourceId, availableResources]
@@ -532,70 +566,72 @@ export default function PortalClient() {
       </section>
 
       {isGuest && showAuthPanel && (
-        <section className="portal-card portal-card--auth-inline">
-          <h2>{authMode === "login" ? "Inicia sesión para desbloquear más" : "Crea tu cuenta para desbloquear más"}</h2>
-          <div className="portal-toggle">
-            <button
-              className={authMode === "login" ? "toggle active" : "toggle"}
-              onClick={() => setAuthMode("login")}
-              type="button"
+        <div className="auth-modal-backdrop" onClick={() => setShowAuthPanel(false)}>
+          <section className="auth-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>{authMode === "login" ? "Inicia sesión para desbloquear más" : "Crea tu cuenta para desbloquear más"}</h2>
+            <div className="portal-toggle">
+              <button
+                className={authMode === "login" ? "toggle active" : "toggle"}
+                onClick={() => setAuthMode("login")}
+                type="button"
+              >
+                Ingresar
+              </button>
+              <button
+                className={authMode === "signup" ? "toggle active" : "toggle"}
+                onClick={() => setAuthMode("signup")}
+                type="button"
+              >
+                Registrarme
+              </button>
+            </div>
+            <form
+              className="portal-form portal-form--auth"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (authMode === "login") {
+                  void signIn();
+                } else {
+                  void signUp();
+                }
+              }}
             >
-              Ingresar
-            </button>
-            <button
-              className={authMode === "signup" ? "toggle active" : "toggle"}
-              onClick={() => setAuthMode("signup")}
-              type="button"
-            >
-              Registrarme
-            </button>
-          </div>
-          <form
-            className="portal-form portal-form--auth"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (authMode === "login") {
-                void signIn();
-              } else {
-                void signUp();
-              }
-            }}
-          >
-            <div className="portal-grid" style={{ gridTemplateColumns: "1fr" }}>
-              <input
-                className="input"
-                placeholder="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-              <input
-                className="input"
-                placeholder="Contraseña"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              {authMode === "signup" && (
+              <div className="portal-grid" style={{ gridTemplateColumns: "1fr" }}>
                 <input
                   className="input"
-                  placeholder="Confirmar contraseña"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                 />
-              )}
-            </div>
-            <div className="auth-actions">
-              <button className="btn primary" type="submit" disabled={authLoading}>
-                {authLoading ? "Procesando..." : authMode === "login" ? "Ingresar" : "Crear cuenta"}
-              </button>
-              <button className="btn ghost" type="button" onClick={() => setShowAuthPanel(false)}>
-                Cerrar
-              </button>
-            </div>
-          </form>
-          {authNotice && <p className="alert">{authNotice}</p>}
-        </section>
+                <input
+                  className="input"
+                  placeholder="Contraseña"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+                {authMode === "signup" && (
+                  <input
+                    className="input"
+                    placeholder="Confirmar contraseña"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                  />
+                )}
+              </div>
+              <div className="auth-actions">
+                <button className="btn primary" type="submit" disabled={authLoading}>
+                  {authLoading ? "Procesando..." : authMode === "login" ? "Ingresar" : "Crear cuenta"}
+                </button>
+                <button className="btn ghost" type="button" onClick={() => setShowAuthPanel(false)}>
+                  Cerrar
+                </button>
+              </div>
+            </form>
+            {authNotice && <p className="alert">{authNotice}</p>}
+          </section>
+        </div>
       )}
 
     </main>
