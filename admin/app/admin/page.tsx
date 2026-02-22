@@ -311,7 +311,7 @@ export default function Page() {
       const list = payload.versions ?? [];
       const published = list.find((item: Version) => item.status === "published");
       if (published?.id) return published.id;
-      const hasCurrent = list.some((item) => item.id === current);
+      const hasCurrent = list.some((item: Version) => item.id === current);
       if (hasCurrent) return current;
       return list[0]?.id ?? "";
     });
