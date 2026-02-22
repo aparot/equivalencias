@@ -454,7 +454,7 @@ export default function PortalClient() {
         </form>
       </section>
 
-      <section className="portal-card">
+      <section className="portal-card portal-card--results">
         <h2>Resultados</h2>
         {results.length === 0 ? (
           <p className="muted">Ingresa una cantidad y presiona “Calcular equivalencias”.</p>
