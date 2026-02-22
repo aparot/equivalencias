@@ -297,7 +297,7 @@ export default function PortalClient() {
 
   if (!profileName) {
     return (
-      <main className="portal-root">
+      <main className="portal-root portal-root--auth">
         <section className="portal-card">
           <p className="eyebrow">EcoEquivalencias</p>
           <h1>Ingresa para calcular tu impacto</h1>
