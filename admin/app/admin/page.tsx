@@ -162,6 +162,8 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionNote, setActionNote] = useState<string | null>(null);
 
   const [versions, setVersions] = useState<Version[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -180,6 +182,8 @@ export default function Page() {
   const [eqSearch, setEqSearch] = useState("");
   const [sourceSearch, setSourceSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
+  const [unitSearch, setUnitSearch] = useState("");
+  const [activitySearch, setActivitySearch] = useState("");
 
   const [resourceForm, setResourceForm] = useState<ResourceForm>(DEFAULT_RESOURCE_FORM);
   const [unitForm, setUnitForm] = useState<UnitForm>(DEFAULT_UNIT_FORM);
@@ -223,6 +227,16 @@ export default function Page() {
     return resourcesInVersion.filter((r) => `${r.name} ${r.slug} ${r.category}`.toLowerCase().includes(query));
   }, [resourceSearch, resourcesInVersion]);
 
+  const filteredUnits = useMemo(() => {
+    const query = unitSearch.trim().toLowerCase();
+    if (!query) return unitsInVersion;
+    return unitsInVersion.filter((u) => {
+      const resource = resourcesInVersion.find((r) => r.id === u.resource_id);
+      const text = `${u.unit_name} ${u.unit_symbol} ${resource?.name ?? ""}`.toLowerCase();
+      return text.includes(query);
+    });
+  }, [unitSearch, unitsInVersion, resourcesInVersion]);
+
   const filteredEquivalences = useMemo(() => {
     const query = eqSearch.trim().toLowerCase();
     if (!query) return equivalencesInVersion;
@@ -240,6 +254,15 @@ export default function Page() {
     if (!query) return profiles;
     return profiles.filter((p) => `${p.email ?? ""} ${p.role} ${p.plan}`.toLowerCase().includes(query));
   }, [userSearch, profiles]);
+
+  const filteredAuditLog = useMemo(() => {
+    const query = activitySearch.trim().toLowerCase();
+    if (!query) return auditLog;
+    return auditLog.filter((entry) => {
+      const text = `${entry.action} ${entry.table_name} ${entry.actor_id ?? ""} ${entry.row_id ?? ""}`.toLowerCase();
+      return text.includes(query);
+    });
+  }, [activitySearch, auditLog]);
 
   const selectedVersionData = useMemo(() => versions.find((v) => v.id === selectedVersion) ?? null, [versions, selectedVersion]);
 
@@ -317,6 +340,17 @@ export default function Page() {
     });
   }
 
+  function stopAction(message?: string) {
+    setActionBusy(false);
+    const note = message
+      ? (message.includes("Esto funcionó") ? message : `Esto funcionó: ${message}`)
+      : "Esto funcionó";
+    setActionNote(note);
+    if (note) {
+      window.setTimeout(() => setActionNote(null), 2000);
+    }
+  }
+
   async function login() {
     if (!supabase) return;
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
@@ -357,6 +391,8 @@ export default function Page() {
       setErrorText("Escribe un nombre para la versión.");
       return;
     }
+    setActionBusy(true);
+    setActionNote("Creando versión...");
     const payload = {
       name: newVersionName.trim(),
       status: "draft" as const,
@@ -366,14 +402,19 @@ export default function Page() {
     const { error } = await supabase.from("dataset_versions").insert(payload);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     setNewVersionName("");
     await loadAll();
+    stopAction("Listo");
   }
 
   async function publishVersion(versionId: string) {
     if (!supabase || !versionId) return;
+    setActionBusy(true);
+    setActionNote("Publicando versión...");
     const { error: archiveError } = await supabase
       .from("dataset_versions")
       .update({ status: "archived", valid_to: new Date().toISOString().slice(0, 10) })
@@ -382,6 +423,8 @@ export default function Page() {
 
     if (archiveError) {
       setErrorText(archiveError.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
 
@@ -392,10 +435,13 @@ export default function Page() {
 
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
 
     await loadAll();
+    stopAction("Listo");
   }
 
   async function saveResource() {
@@ -404,6 +450,8 @@ export default function Page() {
       setErrorText("Selecciona una versión.");
       return;
     }
+    setActionBusy(true);
+    setActionNote(resourceForm.id ? "Guardando recurso..." : "Creando recurso...");
     const payload = {
       version_id: selectedVersion,
       slug: resourceForm.slug.trim(),
@@ -421,24 +469,38 @@ export default function Page() {
     const { error } = await query;
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     setResourceForm(DEFAULT_RESOURCE_FORM);
     await loadAll();
+    stopAction("Listo");
   }
 
   async function removeResource(id: string) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Eliminando recurso...");
     const { error } = await supabase.from("resources").delete().eq("id", id);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Listo");
   }
 
   async function saveUnit() {
     if (!supabase) return;
+    if (!unitForm.resource_id) {
+      setErrorText("Selecciona un recurso para la unidad.");
+      return;
+    }
+    setActionBusy(true);
+    setActionNote(unitForm.id ? "Guardando unidad..." : "Creando unidad...");
     const payload = {
       resource_id: unitForm.resource_id,
       unit_name: unitForm.unit_name.trim(),
@@ -454,20 +516,26 @@ export default function Page() {
     const { error } = await query;
     if (error) {
       setErrorText(error.message);
+      stopAction();
       return;
     }
     setUnitForm(DEFAULT_UNIT_FORM);
     await loadAll();
+    stopAction("Unidad guardada");
   }
 
   async function removeUnit(id: string) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Eliminando unidad...");
     const { error } = await supabase.from("resource_units").delete().eq("id", id);
     if (error) {
       setErrorText(error.message);
+      stopAction();
       return;
     }
     await loadAll();
+    stopAction("Unidad eliminada");
   }
 
   async function saveEquivalence() {
@@ -476,6 +544,8 @@ export default function Page() {
       setErrorText("Selecciona una versión.");
       return;
     }
+    setActionBusy(true);
+    setActionNote(eqForm.id ? "Guardando equivalencia..." : "Creando equivalencia...");
 
     const payload = {
       version_id: selectedVersion,
@@ -496,24 +566,34 @@ export default function Page() {
     const { error } = await query;
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     setEqForm(DEFAULT_EQ_FORM);
     await loadAll();
+    stopAction("Listo");
   }
 
   async function removeEquivalence(id: string) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Eliminando equivalencia...");
     const { error } = await supabase.from("equivalences").delete().eq("id", id);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Listo");
   }
 
   async function saveSource() {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote(sourceForm.id ? "Guardando fuente..." : "Creando fuente...");
 
     const payload = {
       key: sourceForm.key.trim(),
@@ -535,20 +615,28 @@ export default function Page() {
     const { error } = await query;
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     setSourceForm(DEFAULT_SOURCE_FORM);
     await loadAll();
+    stopAction("Listo");
   }
 
   async function removeSource(id: string) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Eliminando fuente...");
     const { error } = await supabase.from("sources").delete().eq("id", id);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Listo");
   }
 
   async function linkSourceToEquivalence() {
@@ -557,20 +645,27 @@ export default function Page() {
       setErrorText("Selecciona equivalencia y fuente para vincular.");
       return;
     }
+    setActionBusy(true);
+    setActionNote("Vinculando fuente...");
     const { error } = await supabase.from("equivalence_sources").insert({
       equivalence_id: selectedEq,
       source_id: selectedSourceForEq
     });
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     setSelectedSourceForEq("");
     await loadAll();
+    stopAction("Fuente vinculada");
   }
 
   async function unlinkSourceFromEquivalence(equivalenceId: string, sourceId: string) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Quitando vínculo...");
     const { error } = await supabase
       .from("equivalence_sources")
       .delete()
@@ -578,29 +673,42 @@ export default function Page() {
       .eq("source_id", sourceId);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Vínculo eliminado");
   }
 
   async function updateUserRole(profileId: string, role: AppRole) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Actualizando rol...");
     const { error } = await supabase.from("profiles").update({ role }).eq("id", profileId);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Rol actualizado");
   }
 
   async function updateUserPlan(profileId: string, plan: AppPlan) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Actualizando plan...");
     const { error } = await supabase.from("profiles").update({ plan }).eq("id", profileId);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Plan actualizado");
   }
 
   async function getAccessToken(): Promise<string | null> {
@@ -621,6 +729,8 @@ export default function Page() {
     }
 
     setUserActionLoading(true);
+    setActionBusy(true);
+    setActionNote("Creando usuario...");
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
@@ -647,6 +757,7 @@ export default function Page() {
     if (!res.ok) {
       setErrorText(payload.error ?? "No se pudo crear el usuario.");
       setUserActionLoading(false);
+      stopAction();
       return;
     }
     setNewUserEmail("");
@@ -655,6 +766,7 @@ export default function Page() {
     setNewUserPlan("free");
     await loadAll();
     setUserActionLoading(false);
+    stopAction("Usuario creado");
   }
 
   async function resetUserPassword(userId: string) {
@@ -666,6 +778,8 @@ export default function Page() {
       return;
     }
     setUserActionLoading(true);
+    setActionBusy(true);
+    setActionNote("Actualizando contraseña...");
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
@@ -685,9 +799,11 @@ export default function Page() {
     if (!res.ok) {
       setErrorText(payload.error ?? "No se pudo actualizar la contraseña.");
       setUserActionLoading(false);
+      stopAction();
       return;
     }
     setUserActionLoading(false);
+    stopAction("Contraseña actualizada");
   }
 
   async function deleteUser(userId: string) {
@@ -695,6 +811,8 @@ export default function Page() {
     const confirmed = window.confirm("¿Eliminar usuario y perfil? Esta acción no se puede deshacer.");
     if (!confirmed) return;
     setUserActionLoading(true);
+    setActionBusy(true);
+    setActionNote("Eliminando usuario...");
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
@@ -714,10 +832,12 @@ export default function Page() {
     if (!res.ok) {
       setErrorText(payload.error ?? "No se pudo eliminar el usuario.");
       setUserActionLoading(false);
+      stopAction();
       return;
     }
     await loadAll();
     setUserActionLoading(false);
+    stopAction("Usuario eliminado");
   }
 
   function handleUserCreateKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -732,6 +852,8 @@ export default function Page() {
     const nextEmail = window.prompt("Nuevo email:");
     if (!nextEmail) return;
     setUserActionLoading(true);
+    setActionBusy(true);
+    setActionNote("Actualizando email...");
     setErrorText(null);
     const token = await getAccessToken();
     if (!token) {
@@ -751,10 +873,12 @@ export default function Page() {
     if (!res.ok) {
       setErrorText(payload.error ?? "No se pudo actualizar el email.");
       setUserActionLoading(false);
+      stopAction();
       return;
     }
     await loadAll();
     setUserActionLoading(false);
+    stopAction("Email actualizado");
   }
 
   async function addEntitlement() {
@@ -763,6 +887,8 @@ export default function Page() {
       setErrorText("Selecciona usuario y completa key/value.");
       return;
     }
+    setActionBusy(true);
+    setActionNote("Guardando entitlement...");
     const { error } = await supabase.from("user_entitlements").upsert({
       user_id: selectedUserForEntitlement,
       key: entitlementKey.trim(),
@@ -770,20 +896,28 @@ export default function Page() {
     });
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     setEntitlementValue("");
     await loadAll();
+    stopAction("Entitlement guardado");
   }
 
   async function removeEntitlement(entitlementId: string) {
     if (!supabase) return;
+    setActionBusy(true);
+    setActionNote("Eliminando entitlement...");
     const { error } = await supabase.from("user_entitlements").delete().eq("id", entitlementId);
     if (error) {
       setErrorText(error.message);
+      setActionBusy(false);
+      setActionNote(null);
       return;
     }
     await loadAll();
+    stopAction("Entitlement eliminado");
   }
 
   const headerStats = [
@@ -815,6 +949,7 @@ export default function Page() {
       </header>
 
       {errorText && <div className="alert">{errorText}</div>}
+      {actionNote && <div className="alert">{actionNote}</div>}
 
       {isAdmin && (
         <section className="stats-grid">
@@ -956,6 +1091,7 @@ export default function Page() {
           <div className="actions-row">
             <button className="btn primary" onClick={saveUnit}>{unitForm.id ? "Guardar cambios" : "Crear unidad"}</button>
             <button className="btn ghost" onClick={() => setUnitForm(DEFAULT_UNIT_FORM)}>Limpiar</button>
+            <input className="search" placeholder="Buscar unidades..." value={unitSearch} onChange={(e) => setUnitSearch(e.target.value)} />
           </div>
 
           <div className="table-wrap">
@@ -971,7 +1107,7 @@ export default function Page() {
                 </tr>
               </thead>
               <tbody>
-                {unitsInVersion.map((item) => {
+                {filteredUnits.map((item) => {
                   const resource = resourcesInVersion.find((r) => r.id === item.resource_id);
                   return (
                     <tr key={item.id}>
@@ -1261,6 +1397,14 @@ export default function Page() {
         <section className="panel">
           <h2>Actividad de auditoría</h2>
           <p className="muted">Registro de cambios sobre recursos, unidades, equivalencias y fuentes.</p>
+          <div className="actions-row">
+            <input
+              className="search"
+              placeholder="Buscar en actividad..."
+              value={activitySearch}
+              onChange={(e) => setActivitySearch(e.target.value)}
+            />
+          </div>
           <div className="table-wrap">
             <table>
               <thead>
@@ -1274,7 +1418,7 @@ export default function Page() {
                 </tr>
               </thead>
               <tbody>
-                {auditLog.map((item) => (
+                {filteredAuditLog.map((item) => (
                   <tr key={item.id}>
                     <td>{item.id}</td>
                     <td>{shortDate(item.created_at)}</td>

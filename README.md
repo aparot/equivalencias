@@ -46,10 +46,12 @@ Usa el SQL editor de Supabase (o CLI) en este orden:
 2. `backend/supabase/migrations/20260221101000_api_views.sql`
 3. `backend/supabase/migrations/20260222120000_user_plans.sql`
 4. `backend/supabase/migrations/20260222123000_user_entitlements.sql`
-5. `backend/supabase/seed/seed.sql` (dataset demo rapido)
+5. `backend/supabase/migrations/20260222150000_admin_role_functions.sql`
+6. `backend/supabase/migrations/20260222151000_audit_log_insert_policy.sql`
+7. `backend/supabase/seed/seed.sql` (dataset demo rapido)
 
 Para un dataset más robusto y trazable científicamente (47 recursos + 31 ecoequivalencias):
-5. `backend/supabase/seed/seed_v2_scientific.sql`
+7. `backend/supabase/seed/seed_v2_scientific.sql`
 
 ## 5) Correr local
 
@@ -105,18 +107,14 @@ Se recomienda un **solo proyecto** en Vercel (admin + portal en el mismo dominio
 1. Crea un proyecto en Vercel desde este repo.
 2. Root Directory: `admin`
 3. Framework: Next.js
-4. Build Command: (usa `vercel-build` por defecto)
 
 ### Environment Variables (en el mismo proyecto)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SECRET_KEY`
 - `NEXT_PUBLIC_PORTAL_URL` = `/`
-- `EXPO_PUBLIC_SUPABASE_URL`
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-- `EXPO_PUBLIC_ADMIN_URL` = `/admin`
 
 ### Resultado
-- Portal (mobile web): `https://tu-dominio.vercel.app/`
+- Portal: `https://tu-dominio.vercel.app/`
 - Admin: `https://tu-dominio.vercel.app/admin`
-- Login único en el portal comparte sesión con admin (mismo dominio).
+- Redirección server-side por rol (sin saltos).
