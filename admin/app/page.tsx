@@ -260,6 +260,21 @@ export default function Page() {
     }
     setLoading(true);
     setErrorText(null);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete("access_token");
+        cleanUrl.searchParams.delete("refresh_token");
+        window.history.replaceState({}, "", cleanUrl.toString());
+      }
+    }
     const session = await supabase.auth.getSession();
     const user = session.data.session?.user;
     setSessionEmail(user?.email ?? null);

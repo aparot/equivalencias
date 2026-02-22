@@ -223,6 +223,17 @@ export default function App(): React.JSX.Element {
     if (data?.plan) setProfilePlan(data.plan as AppPlan);
     if (data?.role === "admin") {
       if (Platform.OS === "web" && typeof window !== "undefined") {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
+        const token = session?.access_token;
+        const refresh = session?.refresh_token;
+        if (token && refresh) {
+          const url = new URL(ADMIN_URL);
+          url.searchParams.set("access_token", token);
+          url.searchParams.set("refresh_token", refresh);
+          window.location.href = url.toString();
+          return;
+        }
         window.location.href = ADMIN_URL;
       } else {
         Alert.alert("Admin", `Este usuario es admin. Abre el panel en ${ADMIN_URL}`);
