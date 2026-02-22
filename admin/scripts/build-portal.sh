@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ADMIN_DIR="$ROOT_DIR/admin"
 MOBILE_DIR="$ROOT_DIR/mobile"
 
+cd "$ROOT_DIR"
+npm install
+
 cd "$MOBILE_DIR"
 npx expo export --platform web
 
