@@ -958,7 +958,10 @@ export default function Page() {
         <div className="auth-box">
           <p className="muted">Sesión: <strong>{sessionEmail ?? "invitado"}</strong></p>
           {sessionEmail && isAdmin ? (
-            <button className="btn ghost" onClick={logout}>Cerrar sesión</button>
+            <div className="auth-actions">
+              <a className="btn ghost" href="/metodo">Método</a>
+              <button className="btn ghost" onClick={logout}>Cerrar sesión</button>
+            </div>
           ) : (
             <p className="muted">
               Inicia sesión desde el portal principal:{" "}

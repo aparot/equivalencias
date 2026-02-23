@@ -409,7 +409,10 @@ export default function PortalClient() {
               : "Modo invitado: 10 recursos y 3 ecoequivalencias por cálculo."}
           </p>
         </div>
-        {profileName && <button className="btn ghost" onClick={signOut}>Cerrar sesión</button>}
+        <div className="portal-header__actions">
+          <a className="btn ghost" href="/metodo">Método</a>
+          {profileName && <button className="btn ghost" onClick={signOut}>Cerrar sesión</button>}
+        </div>
       </header>
 
       {isGuest && (
